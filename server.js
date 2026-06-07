@@ -31,6 +31,32 @@ let gameState = {
     players: {}, // Keyed by socket.id
     trails: []   // Array of solid trail line rectangles
 };
+let countdownInterval = null;
+
+function broadcastGameState() {
+    io.emit('GAME_STATE_UPDATE', gameState);
+}
+
+function startCountdown() {
+    gameState.gameStatus = 'COUNTDOWN';
+    gameState.timer = 3;
+    broadcastGameState();
+
+    countdownInterval = setInterval(() => {
+        gameState.timer -= 1;
+        broadcastGameState();
+
+        if (gameState.timer === 0) {
+            clearInterval(countdownInterval);
+            countdownInterval = null;
+
+            setTimeout(() => {
+                gameState.gameStatus = 'PLAYING';
+                broadcastGameState();
+            }, 1500);
+        }
+    }, 1000);
+}
 
 function reassignLobbySlots() {
     Object.values(gameState.players)
@@ -123,8 +149,7 @@ io.on('connection', (socket) => {
             return;
         }
 
-        gameState.gameStatus = 'PLAYING';
-        io.emit('GAME_STATE_UPDATE', gameState);
+        startCountdown();
     });
 
     // 3. Handle real-time user steering inputs

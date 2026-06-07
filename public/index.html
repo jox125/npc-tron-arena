@@ -98,8 +98,25 @@
     </section>
 
     <section id="overlay" class="overlay hidden" aria-live="assertive">
-        <h2 id="overlay-title"></h2>
-        <p id="overlay-message"></p>
+        <div id="countdown-content" class="countdown">
+            <p id="countdown-player" class="countdown__player">Player, get ready</p>
+            <div class="countdown__stage" aria-hidden="true">
+                <span id="countdown-number" class="countdown__number">3</span>
+            </div>
+            <p class="countdown__hint">Prepare to enter the grid</p>
+
+            <div id="countdown-cycle" class="countdown-cycle" aria-hidden="true">
+                <span class="countdown-cycle__trail"></span>
+                <span class="countdown-cycle__body"></span>
+                <span class="countdown-cycle__wheel countdown-cycle__wheel--front"></span>
+                <span class="countdown-cycle__wheel countdown-cycle__wheel--back"></span>
+            </div>
+        </div>
+
+        <div id="state-message" class="state-message hidden">
+            <h2 id="overlay-title"></h2>
+            <p id="overlay-message"></p>
+        </div>
     </section>
 </main>
 </body>

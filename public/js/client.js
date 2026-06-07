@@ -4,12 +4,18 @@ import {
     showMatchInProgress,
     showStartError,
     showScreen,
+    renderCountdown,
     updateArenaIdentity,
     updateLobbyActions,
     updateLobbyPlayers,
     updateScoreboard
 } from './ui.js';
 import { updateGameState } from './renderer.js';
+import {
+    playCountdownCue,
+    resetCountdownAudio,
+    unlockAudio
+} from './audio.js';
 
 const socket = io();
 const joinForm = document.querySelector('#join-form');
@@ -18,6 +24,24 @@ const joinButton = document.querySelector('#join-button');
 const startGameButton = document.querySelector('#start-game-button');
 let currentPlayerId = null;
 let lobbyPlayers = [];
+let currentGameStatus = 'LOBBY';
+
+document.addEventListener('pointerdown', unlockAudio, { once: true });
+document.addEventListener('keydown', unlockAudio, { once: true });
+
+document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || event.repeat) {
+        return;
+    }
+
+    const canTogglePause =
+        currentPlayerId &&
+        ['PLAYING', 'PAUSED'].includes(currentGameStatus);
+
+    if (canTogglePause) {
+        socket.emit('TOGGLE_PAUSE');
+    }
+});
 
 joinForm.addEventListener('submit', (event) => {
     event.preventDefault();
@@ -73,6 +97,7 @@ socket.on('ROOM_STATE_UPDATE', players => {
 socket.on('GAME_STATE_UPDATE', gameState => {
     const players = Object.values(gameState.players);
     const currentPlayer = players.find(player => player.id === currentPlayerId);
+    currentGameStatus = gameState.gameStatus;
 
     updateScoreboard(players, currentPlayerId);
 
@@ -93,5 +118,13 @@ socket.on('GAME_STATE_UPDATE', gameState => {
 
     updateArenaIdentity(currentPlayer);
     showScreen(gameState.gameStatus);
+
+    if (gameState.gameStatus === 'COUNTDOWN') {
+        renderCountdown(gameState.timer, currentPlayer);
+        playCountdownCue(gameState.timer);
+    } else {
+        resetCountdownAudio();
+    }
+
     updateGameState(gameState);
 });
