@@ -68,6 +68,13 @@
                         <li class="player-list__empty">Waiting for players...</li>
                     </ul>
 
+                    <div id="lobby-actions" class="lobby-actions hidden">
+                        <button id="start-game-button" class="neon-button" type="button" disabled>
+                            Waiting for players
+                        </button>
+                        <p id="start-game-message" class="lobby-actions__message" aria-live="polite"></p>
+                    </div>
+
                     <p class="room-status">
                         <span class="status-light"></span>
                         Lobby online
@@ -79,6 +86,11 @@
 
     <section id="game-screen" class="screen hidden">
         <aside id="scoreboard" aria-label="Scoreboard">
+            <section id="player-identity" class="player-identity" aria-label="Your player">
+                <p class="player-identity__label">You are</p>
+                <p id="player-identity-number" class="player-identity__number">P?</p>
+                <p id="player-identity-name" class="player-identity__name">Unknown player</p>
+            </section>
             <h2>Scoreboard</h2>
             <ul id="scoreboard-list"></ul>
         </aside>
@@ -87,8 +99,25 @@
     </section>
 
     <section id="overlay" class="overlay hidden" aria-live="assertive">
-        <h2 id="overlay-title"></h2>
-        <p id="overlay-message"></p>
+        <div id="countdown-content" class="countdown">
+            <p id="countdown-player" class="countdown__player">Player, get ready</p>
+            <div class="countdown__stage" aria-hidden="true">
+                <span id="countdown-number" class="countdown__number">3</span>
+            </div>
+            <p class="countdown__hint">Prepare to enter the grid</p>
+
+            <div id="countdown-cycle" class="countdown-cycle" aria-hidden="true">
+                <span class="countdown-cycle__trail"></span>
+                <span class="countdown-cycle__body"></span>
+                <span class="countdown-cycle__wheel countdown-cycle__wheel--front"></span>
+                <span class="countdown-cycle__wheel countdown-cycle__wheel--back"></span>
+            </div>
+        </div>
+
+        <div id="state-message" class="state-message hidden">
+            <h2 id="overlay-title"></h2>
+            <p id="overlay-message"></p>
+        </div>
     </section>
 </main>
 </body>

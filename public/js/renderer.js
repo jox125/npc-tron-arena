@@ -59,13 +59,7 @@ function getOrCreatePlayerDiv(id, color) {
 
     const div = document.createElement('div');
     div.classList.add('player-vehicle');
-    div.style.cssText = `
-        position: absolute;
-        width: 10px;
-        height: 10px;
-        background-color: ${color};
-        will-change: transform;
-    `;
+    div.style.willChange = 'transform';
     arena.appendChild(div);
     playerElements[id] = div;
     return div;

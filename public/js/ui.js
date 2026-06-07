@@ -1,10 +1,22 @@
 const lobbyScreen = document.querySelector('#lobby-screen');
 const gameScreen = document.querySelector('#game-screen');
 const overlay = document.querySelector('#overlay');
+const arena = document.querySelector('#arena');
+const scoreboard = document.querySelector('#scoreboard');
+const playerIdentityNumber = document.querySelector('#player-identity-number');
+const playerIdentityName = document.querySelector('#player-identity-name');
+const countdownContent = document.querySelector('#countdown-content');
+const countdownPlayer = document.querySelector('#countdown-player');
+const countdownNumber = document.querySelector('#countdown-number');
+const countdownCycle = document.querySelector('#countdown-cycle');
+const stateMessage = document.querySelector('#state-message');
 const lobbyPlayerList = document.querySelector('#lobby-player-list');
 const scoreboardList = document.querySelector('#scoreboard-list');
 const playerCount = document.querySelector('#player-count');
 const joinMessage = document.querySelector('#join-message');
+const lobbyActions = document.querySelector('#lobby-actions');
+const startGameButton = document.querySelector('#start-game-button');
+const startGameMessage = document.querySelector('#start-game-message');
 
 export function showScreen(gameStatus) {
     lobbyScreen.classList.toggle('hidden', gameStatus !== 'LOBBY');
@@ -14,11 +26,107 @@ export function showScreen(gameStatus) {
         .includes(gameStatus);
 
     overlay.classList.toggle('hidden', !showOverlay);
+    countdownContent.classList.toggle('hidden', gameStatus !== 'COUNTDOWN');
+    stateMessage.classList.toggle(
+        'hidden',
+        !['PAUSED', 'GAME_OVER'].includes(gameStatus)
+    );
 }
 
 export function showJoinMessage(message, type = 'error') {
     joinMessage.textContent = message;
     joinMessage.classList.toggle('success', type === 'success');
+}
+
+export function showMatchInProgress() {
+    lobbyScreen.classList.remove('hidden');
+    gameScreen.classList.add('hidden');
+    overlay.classList.add('hidden');
+    joinMessage.textContent = 'A match is currently in progress. Wait for the next lobby.';
+    joinMessage.classList.remove('success');
+}
+
+export function updateArenaIdentity(player) {
+    if (!player) {
+        return;
+    }
+
+    if (arena.dataset.playerColor !== player.color) {
+        arena.dataset.playerColor = player.color;
+        arena.style.setProperty('--arena-color', player.color);
+        scoreboard.style.setProperty('--identity-color', player.color);
+    }
+
+    playerIdentityNumber.textContent = `P${player.playerNumber}`;
+    playerIdentityName.textContent = player.name;
+    arena.setAttribute(
+        'aria-label',
+        `Game arena. You are P${player.playerNumber}, ${player.name}.`
+    );
+}
+
+export function renderCountdown(timer, player) {
+    if (!player) {
+        return;
+    }
+
+    const isLaunch = timer === 0;
+
+    overlay.style.setProperty('--overlay-color', player.color);
+    countdownPlayer.textContent =
+        `Player ${player.playerNumber} // ${player.name}, get ready`;
+    countdownNumber.textContent = String(timer);
+    countdownNumber.classList.remove('is-ticking', 'is-launching');
+    countdownCycle.classList.remove('is-riding');
+
+    // Force a reflow so the animation restarts for every server countdown tick.
+    void countdownNumber.offsetWidth;
+
+    countdownNumber.classList.add(isLaunch ? 'is-launching' : 'is-ticking');
+
+    if (isLaunch) {
+        countdownCycle.classList.add('is-riding');
+    }
+}
+
+export function updateLobbyActions(players, currentPlayerId) {
+    const currentPlayer = players.find(player => player.id === currentPlayerId);
+
+    lobbyActions.classList.toggle('hidden', !currentPlayer);
+
+    if (!currentPlayer) {
+        return;
+    }
+
+    const isHost = currentPlayer.playerNumber === 1;
+    const canStart = isHost && players.length >= 2;
+
+    startGameButton.classList.toggle('hidden', !isHost);
+    startGameButton.disabled = !canStart;
+    startGameButton.textContent = canStart ? 'Start game' : 'Waiting for players';
+
+    if (isHost) {
+        startGameMessage.textContent = canStart
+            ? `${players.length} players ready.`
+            : 'At least 2 players are required to start.';
+    } else {
+        startGameMessage.textContent = 'Waiting for P1 to start the game.';
+    }
+
+    startGameMessage.classList.remove('error', 'notice');
+}
+
+export function showStartError(message) {
+    startGameButton.disabled = false;
+    startGameMessage.textContent = message;
+    startGameMessage.classList.remove('notice');
+    startGameMessage.classList.add('error');
+}
+
+export function showHostChanged(message) {
+    startGameMessage.textContent = message;
+    startGameMessage.classList.remove('error');
+    startGameMessage.classList.add('notice');
 }
 
 function createPlayerItem(player, className) {
@@ -56,10 +164,16 @@ export function updateLobbyPlayers(players) {
     });
 }
 
-export function updateScoreboard(players) {
+export function updateScoreboard(players, currentPlayerId) {
     scoreboardList.replaceChildren();
 
     players.forEach((player) => {
-        scoreboardList.append(createPlayerItem(player, 'scoreboard-player'));
+        const item = createPlayerItem(player, 'scoreboard-player');
+
+        if (player.id === currentPlayerId) {
+            item.classList.add('is-current-player');
+        }
+
+        scoreboardList.append(item);
     });
 }

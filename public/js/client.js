@@ -1,11 +1,21 @@
+import { startLoop } from './renderer.js';
 import {
     showJoinMessage,
+    showHostChanged,
+    showMatchInProgress,
+    showStartError,
     showScreen,
+    renderCountdown,
+    updateArenaIdentity,
+    updateLobbyActions,
     updateLobbyPlayers,
     updateScoreboard
 } from './ui.js';
-
-import { startLoop } from './renderer.js';
+import {
+    playCountdownCue,
+    resetCountdownAudio,
+    unlockAudio
+} from './audio.js';
 
 // Store curr, prev states for interpolation
 export const state = {
@@ -18,6 +28,27 @@ const socket = io();
 const joinForm = document.querySelector('#join-form');
 const playerNameInput = document.querySelector('#player-name');
 const joinButton = document.querySelector('#join-button');
+const startGameButton = document.querySelector('#start-game-button');
+let currentPlayerId = null;
+let lobbyPlayers = [];
+let currentGameStatus = 'LOBBY';
+
+document.addEventListener('pointerdown', unlockAudio, { once: true });
+document.addEventListener('keydown', unlockAudio, { once: true });
+
+document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || event.repeat) {
+        return;
+    }
+
+    const canTogglePause =
+        currentPlayerId &&
+        ['PLAYING', 'PAUSED'].includes(currentGameStatus);
+
+    if (canTogglePause) {
+        socket.emit('TOGGLE_PAUSE');
+    }
+});
 
 joinForm.addEventListener('submit', (event) => {
     event.preventDefault();
@@ -35,11 +66,18 @@ joinForm.addEventListener('submit', (event) => {
     socket.emit('JOIN_LOBBY', { name });
 });
 
-socket.on('JOIN_SUCCESS', () => {
+startGameButton.addEventListener('click', () => {
+    startGameButton.disabled = true;
+    socket.emit('START_GAME');
+});
+
+socket.on('JOIN_SUCCESS', ({ playerId }) => {
+    currentPlayerId = playerId;
     playerNameInput.disabled = true;
     joinButton.disabled = true;
     joinButton.textContent = 'Joined';
     showJoinMessage('You are connected. Waiting for the match to start.', 'success');
+    updateLobbyActions(lobbyPlayers, currentPlayerId);
 });
 
 socket.on('JOIN_ERROR', ({ message }) => {
@@ -48,14 +86,53 @@ socket.on('JOIN_ERROR', ({ message }) => {
     playerNameInput.select();
 });
 
+socket.on('START_ERROR', ({ message }) => {
+    showStartError(message);
+});
+
+socket.on('HOST_CHANGED', ({ message }) => {
+    showHostChanged(message);
+});
+
 socket.on('ROOM_STATE_UPDATE', players => {
+    lobbyPlayers = players;
     updateLobbyPlayers(players);
-    updateScoreboard(players);
+    updateLobbyActions(players, currentPlayerId);
+    updateScoreboard(players, currentPlayerId);
 });
 
 socket.on('GAME_STATE_UPDATE', gameState => {
+    const players = Object.values(gameState.players);
+    const currentPlayer = players.find(player => player.id === currentPlayerId);
+    currentGameStatus = gameState.gameStatus;
+
+    updateScoreboard(players, currentPlayerId);
+
+    if (gameState.gameStatus !== 'LOBBY' && !currentPlayer) {
+        playerNameInput.disabled = true;
+        joinButton.disabled = true;
+        joinButton.textContent = 'Match in progress';
+        showMatchInProgress();
+        return;
+    }
+
+    if (gameState.gameStatus === 'LOBBY' && !currentPlayerId) {
+        playerNameInput.disabled = false;
+        joinButton.disabled = false;
+        joinButton.textContent = 'Enter lobby';
+        showJoinMessage('');
+    }
+
+    updateArenaIdentity(currentPlayer);
     showScreen(gameState.gameStatus);
-    updateScoreboard(Object.values(gameState.players));
+
+    if (gameState.gameStatus === 'COUNTDOWN') {
+        renderCountdown(gameState.timer, currentPlayer);
+        playCountdownCue(gameState.timer);
+    } else {
+        resetCountdownAudio();
+    }
+
     updateGameState(gameState);
 });
 
