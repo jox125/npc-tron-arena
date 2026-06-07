@@ -5,6 +5,11 @@ const arena = document.querySelector('#arena');
 const scoreboard = document.querySelector('#scoreboard');
 const playerIdentityNumber = document.querySelector('#player-identity-number');
 const playerIdentityName = document.querySelector('#player-identity-name');
+const countdownContent = document.querySelector('#countdown-content');
+const countdownPlayer = document.querySelector('#countdown-player');
+const countdownNumber = document.querySelector('#countdown-number');
+const countdownCycle = document.querySelector('#countdown-cycle');
+const stateMessage = document.querySelector('#state-message');
 const lobbyPlayerList = document.querySelector('#lobby-player-list');
 const scoreboardList = document.querySelector('#scoreboard-list');
 const playerCount = document.querySelector('#player-count');
@@ -21,6 +26,11 @@ export function showScreen(gameStatus) {
         .includes(gameStatus);
 
     overlay.classList.toggle('hidden', !showOverlay);
+    countdownContent.classList.toggle('hidden', gameStatus !== 'COUNTDOWN');
+    stateMessage.classList.toggle(
+        'hidden',
+        !['PAUSED', 'GAME_OVER'].includes(gameStatus)
+    );
 }
 
 export function showJoinMessage(message, type = 'error') {
@@ -53,6 +63,30 @@ export function updateArenaIdentity(player) {
         'aria-label',
         `Game arena. You are P${player.playerNumber}, ${player.name}.`
     );
+}
+
+export function renderCountdown(timer, player) {
+    if (!player) {
+        return;
+    }
+
+    const isLaunch = timer === 0;
+
+    overlay.style.setProperty('--overlay-color', player.color);
+    countdownPlayer.textContent =
+        `Player ${player.playerNumber} // ${player.name}, get ready`;
+    countdownNumber.textContent = String(timer);
+    countdownNumber.classList.remove('is-ticking', 'is-launching');
+    countdownCycle.classList.remove('is-riding');
+
+    // Force a reflow so the animation restarts for every server countdown tick.
+    void countdownNumber.offsetWidth;
+
+    countdownNumber.classList.add(isLaunch ? 'is-launching' : 'is-ticking');
+
+    if (isLaunch) {
+        countdownCycle.classList.add('is-riding');
+    }
 }
 
 export function updateLobbyActions(players, currentPlayerId) {
