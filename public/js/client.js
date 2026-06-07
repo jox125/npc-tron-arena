@@ -1,3 +1,4 @@
+import { startLoop } from './renderer.js';
 import {
     showJoinMessage,
     showHostChanged,
@@ -10,12 +11,18 @@ import {
     updateLobbyPlayers,
     updateScoreboard
 } from './ui.js';
-import { updateGameState } from './renderer.js';
 import {
     playCountdownCue,
     resetCountdownAudio,
     unlockAudio
 } from './audio.js';
+
+// Store curr, prev states for interpolation
+export const state = {
+    current: {},
+    previous: {},
+    lastUpdate: 0
+};
 
 const socket = io();
 const joinForm = document.querySelector('#join-form');
@@ -128,3 +135,13 @@ socket.on('GAME_STATE_UPDATE', gameState => {
 
     updateGameState(gameState);
 });
+
+// Start rAF loop
+startLoop();
+
+
+function updateGameState(gameState) {
+    state.previous = state.current;
+    state.current = gameState;
+    state.lastUpdate = performance.now();
+}
