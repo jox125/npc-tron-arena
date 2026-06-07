@@ -19,10 +19,10 @@ app.use(express.static(path.join(import.meta.dirname, 'public')));
 const ARENA_WIDTH = 800;
 const ARENA_HEIGHT = 800;
 const PLAYER_COLORS = [
-    '#168BFF', // P1 - blue
-    '#FF365F', // P2 - red
-    '#24E879', // P3 - green
-    '#FFE14A'  // P4 - yellow
+    '#00D9FF', // P1 - cyan blue
+    '#FF315B', // P2 - neon red
+    '#39FF88', // P3 - neon green
+    '#FFE44D'  // P4 - neon yellow
 ];
 
 let gameState = {
@@ -32,15 +32,32 @@ let gameState = {
     trails: []   // Array of solid trail line rectangles
 };
 
+function reassignLobbySlots() {
+    Object.values(gameState.players)
+        .sort((firstPlayer, secondPlayer) =>
+            firstPlayer.playerNumber - secondPlayer.playerNumber
+        )
+        .forEach((player, index) => {
+            player.playerNumber = index + 1;
+            player.color = PLAYER_COLORS[index];
+        });
+}
+
 // --- CLIENT NETWORK CONNECTION LOGIC ---
 io.on('connection', (socket) => {
     console.log(`Player connected: ${socket.id}`);
 
     // Send the current lobby snapshot immediately to newly connected clients.
     socket.emit('ROOM_STATE_UPDATE', Object.values(gameState.players));
+    socket.emit('GAME_STATE_UPDATE', gameState);
 
     // 1. Handle player joining the lobby
     socket.on('JOIN_LOBBY', (data) => {
+        if (gameState.gameStatus !== 'LOBBY') {
+            socket.emit('JOIN_ERROR', { message: 'The game has already started.' });
+            return;
+        }
+
         if (gameState.players[socket.id]) {
             socket.emit('JOIN_ERROR', { message: 'You have already joined this lobby.' });
             return;
@@ -86,7 +103,31 @@ io.on('connection', (socket) => {
         io.emit('ROOM_STATE_UPDATE', Object.values(gameState.players));
     });
 
-    // 2. Handle real-time user steering inputs
+    // 2. Allow P1 to start when at least two players have joined.
+    socket.on('START_GAME', () => {
+        const player = gameState.players[socket.id];
+        const playerCount = Object.keys(gameState.players).length;
+
+        if (gameState.gameStatus !== 'LOBBY') {
+            socket.emit('START_ERROR', { message: 'The game has already started.' });
+            return;
+        }
+
+        if (!player || player.playerNumber !== 1) {
+            socket.emit('START_ERROR', { message: 'Only P1 can start the game.' });
+            return;
+        }
+
+        if (playerCount < 2) {
+            socket.emit('START_ERROR', { message: 'At least 2 players are required to start.' });
+            return;
+        }
+
+        gameState.gameStatus = 'PLAYING';
+        io.emit('GAME_STATE_UPDATE', gameState);
+    });
+
+    // 3. Handle real-time user steering inputs
     socket.on('PLAYER_INPUT', (data) => {
         const player = gameState.players[socket.id];
         if (!player || !player.isAlive || gameState.gameStatus !== "PLAYING") return;
@@ -108,11 +149,28 @@ io.on('connection', (socket) => {
         }
     });
 
-    // 3. Handle disconnection
+    // 4. Handle disconnection
     socket.on('disconnect', () => {
         console.log(`Player disconnected: ${socket.id}`);
+        const disconnectedPlayer = gameState.players[socket.id];
+        const hostLeft = disconnectedPlayer?.playerNumber === 1;
+
         delete gameState.players[socket.id];
-        io.emit('ROOM_STATE_UPDATE', Object.values(gameState.players));
+
+        if (gameState.gameStatus === 'LOBBY') {
+            reassignLobbySlots();
+        }
+
+        const players = Object.values(gameState.players);
+        io.emit('ROOM_STATE_UPDATE', players);
+
+        if (gameState.gameStatus === 'LOBBY' && hostLeft && players.length > 0) {
+            const newHost = players.find(player => player.playerNumber === 1);
+
+            io.to(newHost.id).emit('HOST_CHANGED', {
+                message: `${disconnectedPlayer.name} left the lobby. You are now the host.`
+            });
+        }
     });
 });
 
