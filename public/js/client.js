@@ -4,7 +4,15 @@ import {
     updateLobbyPlayers,
     updateScoreboard
 } from './ui.js';
-import { updateGameState } from './renderer.js';
+
+import { startLoop } from './renderer.js';
+
+// Store curr, prev states for interpolation
+export const state = {
+    current: {},
+    previous: {},
+    lastUpdate: 0
+};
 
 const socket = io();
 const joinForm = document.querySelector('#join-form');
@@ -50,3 +58,13 @@ socket.on('GAME_STATE_UPDATE', gameState => {
     updateScoreboard(Object.values(gameState.players));
     updateGameState(gameState);
 });
+
+// Start rAF loop
+startLoop();
+
+
+function updateGameState(gameState) {
+    state.previous = state.current;
+    state.current = gameState;
+    state.lastUpdate = performance.now();
+}
