@@ -3,227 +3,140 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import path from 'path';
 
+import { gameState, updateGamePhysics, ARENA_WIDTH, ARENA_HEIGHT, getNextPlayerNumber } from './src/gameEngine.js';
+
 const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
-    cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
-    }
+    cors: { origin: "*", methods: ["GET", "POST"] }
 });
 
-// Serve static assets from the /public folder
 app.use(express.static(path.join(import.meta.dirname, 'public')));
 
-// --- GAME STATE CONTEXT ---
-const ARENA_WIDTH = 800;
-const ARENA_HEIGHT = 800;
-const PLAYER_COLORS = [
-    '#00D9FF', // P1 - cyan blue
-    '#FF315B', // P2 - neon red
-    '#39FF88', // P3 - neon green
-    '#FFE44D'  // P4 - neon yellow
-];
-
-let gameState = {
-    gameStatus: "LOBBY", // LOBBY, COUNTDOWN, PLAYING, PAUSED, GAME_OVER
-    timer: 0,
-    players: {}, // Keyed by socket.id
-    trails: []   // Array of solid trail line rectangles
-};
-let countdownInterval = null;
-
-function broadcastGameState() {
-    io.emit('GAME_STATE_UPDATE', gameState);
-}
-
-function startCountdown() {
-    gameState.gameStatus = 'COUNTDOWN';
-    gameState.timer = 3;
-    broadcastGameState();
-
-    countdownInterval = setInterval(() => {
-        gameState.timer -= 1;
-        broadcastGameState();
-
-        if (gameState.timer === 0) {
-            clearInterval(countdownInterval);
-            countdownInterval = null;
-
-            setTimeout(() => {
-                gameState.gameStatus = 'PLAYING';
-                broadcastGameState();
-            }, 1500);
-        }
-    }, 1000);
-}
-
-function reassignLobbySlots() {
-    Object.values(gameState.players)
-        .sort((firstPlayer, secondPlayer) =>
-            firstPlayer.playerNumber - secondPlayer.playerNumber
-        )
-        .forEach((player, index) => {
-            player.playerNumber = index + 1;
-            player.color = PLAYER_COLORS[index];
-        });
-}
-
-// --- CLIENT NETWORK CONNECTION LOGIC ---
 io.on('connection', (socket) => {
     console.log(`Player connected: ${socket.id}`);
 
-    // Send the current lobby snapshot immediately to newly connected clients.
-    socket.emit('ROOM_STATE_UPDATE', Object.values(gameState.players));
-    socket.emit('GAME_STATE_UPDATE', gameState);
-
-    // 1. Handle player joining the lobby
+    // 1. Handle joining the lobby
     socket.on('JOIN_LOBBY', (data) => {
-        if (gameState.gameStatus !== 'LOBBY') {
-            socket.emit('JOIN_ERROR', { message: 'The game has already started.' });
+        const playersArray = Object.values(gameState.players);
+
+        if (playersArray.length >= 4) {
+            socket.emit('JOIN_ERROR', { message: 'Arena is full! Maximum 4 players.' });
             return;
         }
 
-        if (gameState.players[socket.id]) {
-            socket.emit('JOIN_ERROR', { message: 'You have already joined this lobby.' });
-            return;
-        }
-
-        // Simple verification to ensure names are unique
-        const nameExists = Object.values(gameState.players).some(p => p.name === data.name);
+        const nameExists = playersArray.some(p => p.name.toLowerCase() === data.name.toLowerCase());
         if (nameExists) {
             socket.emit('JOIN_ERROR', { message: 'Name already taken. Choose a unique name.' });
             return;
         }
 
-        const usedColors = new Set(
-            Object.values(gameState.players).map(player => player.color)
-        );
-        const playerSlot = PLAYER_COLORS.findIndex(
-            playerColor => !usedColors.has(playerColor)
-        );
-
-        if (playerSlot === -1) {
-            socket.emit('JOIN_ERROR', { message: 'The lobby is full. Maximum 4 players.' });
-            return;
-        }
-
-        const color = PLAYER_COLORS[playerSlot];
-
-        // Initialize player structure on server side with default parameters
+        const playerNumber = getNextPlayerNumber();
         gameState.players[socket.id] = {
             id: socket.id,
             name: data.name,
-            playerNumber: playerSlot + 1,
-            x: ARENA_WIDTH / 2, // Temporary placeholder spawn coordinates
+            playerNumber: playerNumber,
+            x: ARENA_WIDTH / 2,
             y: ARENA_HEIGHT / 2,
-            dx: 0, // Initial velocity vectors
+            dx: 0,
             dy: 0,
-            color,
+            color: ['#00d9ff', '#ff3f68', '#29ff9a', '#ffb000'][playerNumber - 1], // Cycle colors matching styles.css
             isAlive: true,
             score: 0
         };
 
-        // Notify client they successfully joined and broadcast updated lobby list
         socket.emit('JOIN_SUCCESS', { playerId: socket.id });
         io.emit('ROOM_STATE_UPDATE', Object.values(gameState.players));
     });
 
-    // 2. Allow P1 to start when at least two players have joined.
+    // 2. Handle the Host starting the game
     socket.on('START_GAME', () => {
         const player = gameState.players[socket.id];
-        const playerCount = Object.keys(gameState.players).length;
-
-        if (gameState.gameStatus !== 'LOBBY') {
-            socket.emit('START_ERROR', { message: 'The game has already started.' });
-            return;
-        }
-
+        // Only P1 (Host) can trigger start
         if (!player || player.playerNumber !== 1) {
-            socket.emit('START_ERROR', { message: 'Only P1 can start the game.' });
+            socket.emit('START_ERROR', { message: 'Only Player 1 can start the match.' });
             return;
         }
 
-        if (playerCount < 2) {
+        if (Object.keys(gameState.players).length < 2) {
             socket.emit('START_ERROR', { message: 'At least 2 players are required to start.' });
             return;
         }
 
-        startCountdown();
+        // Advance state to countdown
+        gameState.gameStatus = "COUNTDOWN";
+        gameState.timer = 3;
+        io.emit('GAME_STATE_UPDATE', gameState);
+
+        // Run a simple 1-second interval handler just for the countdown clock
+        let countdownInterval = setInterval(() => {
+            gameState.timer--;
+            if (gameState.timer < 0) {
+                clearInterval(countdownInterval);
+                gameState.gameStatus = "PLAYING";
+
+                // Position players symmetrically at their starting edges facing the center
+                Object.values(gameState.players).forEach(p => {
+                    if (p.playerNumber === 1) { p.x = 400; p.y = 50;  p.dx = 0; p.dy = 4;  }  // Top facing Down
+                    if (p.playerNumber === 2) { p.x = 400; p.y = 750; p.dx = 0; p.dy = -4; }  // Bottom facing Up
+                    if (p.playerNumber === 3) { p.x = 50;  p.y = 400; p.dx = 4; p.dy = 0;  }  // Left facing Right
+                    if (p.playerNumber === 4) { p.x = 750; p.y = 400; p.dx = -4; p.dy = 0; }  // Right facing Left
+                });
+            }
+            io.emit('GAME_STATE_UPDATE', gameState);
+        }, 1000);
     });
 
-    // 3. Handle real-time user steering inputs
+    // 3. Handle Pause Menu (ESC Key event sent by client.js)
+    socket.on('TOGGLE_PAUSE', () => {
+        const player = gameState.players[socket.id];
+        if (!player) return;
+
+        if (gameState.gameStatus === "PLAYING") {
+            gameState.gameStatus = "PAUSED";
+        } else if (gameState.gameStatus === "PAUSED") {
+            gameState.gameStatus = "PLAYING";
+        }
+        io.emit('GAME_STATE_UPDATE', gameState);
+    });
+
+    // 4. Handle steering inputs
     socket.on('PLAYER_INPUT', (data) => {
         const player = gameState.players[socket.id];
         if (!player || !player.isAlive || gameState.gameStatus !== "PLAYING") return;
 
-        // Process 90-degree vector adjustments and prevent self-inversion
         switch (data.turn) {
-            case 'UP':
-                if (player.dy === 0) { player.dx = 0; player.dy = -4; } // Moves 4px per tick
-                break;
-            case 'DOWN':
-                if (player.dy === 0) { player.dx = 0; player.dy = 4; }
-                break;
-            case 'LEFT':
-                if (player.dx === 0) { player.dx = -4; player.dy = 0; }
-                break;
-            case 'RIGHT':
-                if (player.dx === 0) { player.dx = 4; player.dy = 0; }
-                break;
+            case 'UP':    if (player.dy === 0) { player.dx = 0; player.dy = -4; } break;
+            case 'DOWN':  if (player.dy === 0) { player.dx = 0; player.dy = 4; }  break;
+            case 'LEFT':  if (player.dx === 0) { player.dx = -4; player.dy = 0; } break;
+            case 'RIGHT': if (player.dx === 0) { player.dx = 4; player.dy = 0; }  break;
         }
     });
 
-    // 4. Handle disconnection
+    // 5. Handle disconnection
     socket.on('disconnect', () => {
         console.log(`Player disconnected: ${socket.id}`);
-        const disconnectedPlayer = gameState.players[socket.id];
-        const hostLeft = disconnectedPlayer?.playerNumber === 1;
-
         delete gameState.players[socket.id];
 
-        if (gameState.gameStatus === 'LOBBY') {
-            reassignLobbySlots();
+        // If empty, revert back to lobby state
+        if (Object.keys(gameState.players).length === 0) {
+            gameState.gameStatus = "LOBBY";
+            gameState.trails = [];
         }
 
-        const players = Object.values(gameState.players);
-        io.emit('ROOM_STATE_UPDATE', players);
-
-        if (gameState.gameStatus === 'LOBBY' && hostLeft && players.length > 0) {
-            const newHost = players.find(player => player.playerNumber === 1);
-
-            io.to(newHost.id).emit('HOST_CHANGED', {
-                message: `${disconnectedPlayer.name} left the lobby. You are now the host.`
-            });
-        }
+        io.emit('ROOM_STATE_UPDATE', Object.values(gameState.players));
+        io.emit('GAME_STATE_UPDATE', gameState);
     });
 });
 
-// --- AUTHORITATIVE CORE GAME LOOP ---
-const TICK_RATE = 30; // 30 updates per second (~33.3ms intervals)
-
+// Authoritative continuous update loop
+const TICK_RATE = 30;
 setInterval(() => {
     if (gameState.gameStatus !== "PLAYING") return;
-
-    // Process physics logic for every living player
-    Object.values(gameState.players).forEach(player => {
-        if (!player.isAlive) return;
-
-        // Apply continuous physics vectors
-        player.x += player.dx;
-        player.y += player.dy;
-
-        // TODO: Handle screen wrapping calculations here
-        // TODO: Update active trail line dimensions here
-        // TODO: Process trail collision interception mechanics here
-    });
-
-    // Broadcast the absolute source-of-truth state payload to all client viewports
+    updateGamePhysics();
     io.emit('GAME_STATE_UPDATE', gameState);
-
 }, 1000 / TICK_RATE);
 
-// Launch local HTTP instance
 const PORT = process.env.PORT || 3000;
 httpServer.listen(PORT, () => {
     console.log(`Game server running on port http://localhost:${PORT}`);
