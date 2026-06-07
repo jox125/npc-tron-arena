@@ -67,6 +67,13 @@
                         <li class="player-list__empty">Waiting for players...</li>
                     </ul>
 
+                    <div id="lobby-actions" class="lobby-actions hidden">
+                        <button id="start-game-button" class="neon-button" type="button" disabled>
+                            Waiting for players
+                        </button>
+                        <p id="start-game-message" class="lobby-actions__message" aria-live="polite"></p>
+                    </div>
+
                     <p class="room-status">
                         <span class="status-light"></span>
                         Lobby online
@@ -78,6 +85,11 @@
 
     <section id="game-screen" class="screen hidden">
         <aside id="scoreboard" aria-label="Scoreboard">
+            <section id="player-identity" class="player-identity" aria-label="Your player">
+                <p class="player-identity__label">You are</p>
+                <p id="player-identity-number" class="player-identity__number">P?</p>
+                <p id="player-identity-name" class="player-identity__name">Unknown player</p>
+            </section>
             <h2>Scoreboard</h2>
             <ul id="scoreboard-list"></ul>
         </aside>
