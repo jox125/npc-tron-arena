@@ -2,9 +2,93 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Multiplay Tron Arena</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <script src="/socket.io/socket.io.js"></script>
+    <script type="module" src="/js/client.js"></script>
 </head>
 <body>
+<main class="app">
+    <section id="lobby-screen" class="screen lobby-screen" aria-labelledby="game-title">
+        <div class="lobby-shell">
+            <header class="brand">
+                <p class="brand__eyebrow">Multiplayer // Browser // PVP</p>
+                <h1 id="game-title">Tron <span>Arena</span></h1>
+                <p class="brand__description">
+                    Enter the grid, outmaneuver your rivals and be the last light cycle standing.
+                </p>
+            </header>
 
+            <div class="lobby-grid">
+                <section class="panel join-panel" aria-labelledby="join-title">
+                    <p class="panel__label">Player setup</p>
+                    <h2 id="join-title">Join the arena</h2>
+
+                    <form id="join-form" class="join-form" novalidate>
+                        <label for="player-name">Player name</label>
+                        <div class="input-frame">
+                            <input
+                                id="player-name"
+                                name="playerName"
+                                type="text"
+                                minlength="2"
+                                maxlength="16"
+                                autocomplete="nickname"
+                                placeholder="Enter a unique name"
+                                required
+                            >
+                        </div>
+                        <p id="join-message" class="form-message" aria-live="polite"></p>
+                        <button id="join-button" class="neon-button" type="submit">
+                            Enter lobby
+                        </button>
+                    </form>
+
+                    <div class="controls-hint" aria-label="Game controls">
+                        <span class="key">W</span>
+                        <span class="key">A</span>
+                        <span class="key">S</span>
+                        <span class="key">D</span>
+                        <span>or arrow keys to turn</span>
+                    </div>
+                </section>
+
+                <aside class="panel players-panel" aria-labelledby="players-title">
+                    <div class="players-heading">
+                        <div>
+                            <p class="panel__label">Current room</p>
+                            <h2 id="players-title">Players</h2>
+                        </div>
+                        <span id="player-count" class="player-count">0 / 4</span>
+                    </div>
+
+                    <ul id="lobby-player-list" class="player-list" aria-live="polite">
+                        <li class="player-list__empty">Waiting for players...</li>
+                    </ul>
+
+                    <p class="room-status">
+                        <span class="status-light"></span>
+                        Lobby online
+                    </p>
+                </aside>
+            </div>
+        </div>
+    </section>
+
+    <section id="game-screen" class="screen hidden">
+        <aside id="scoreboard" aria-label="Scoreboard">
+            <h2>Scoreboard</h2>
+            <ul id="scoreboard-list"></ul>
+        </aside>
+
+        <div id="arena" aria-label="Game arena"></div>
+    </section>
+
+    <section id="overlay" class="overlay hidden" aria-live="assertive">
+        <h2 id="overlay-title"></h2>
+        <p id="overlay-message"></p>
+    </section>
+</main>
 </body>
 </html>

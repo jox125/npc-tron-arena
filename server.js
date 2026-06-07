@@ -18,6 +18,12 @@ app.use(express.static(path.join(import.meta.dirname, 'public')));
 // --- GAME STATE CONTEXT ---
 const ARENA_WIDTH = 800;
 const ARENA_HEIGHT = 800;
+const PLAYER_COLORS = [
+    '#168BFF', // P1 - blue
+    '#FF365F', // P2 - red
+    '#24E879', // P3 - green
+    '#FFE14A'  // P4 - yellow
+];
 
 let gameState = {
     gameStatus: "LOBBY", // LOBBY, COUNTDOWN, PLAYING, PAUSED, GAME_OVER
@@ -30,8 +36,16 @@ let gameState = {
 io.on('connection', (socket) => {
     console.log(`Player connected: ${socket.id}`);
 
+    // Send the current lobby snapshot immediately to newly connected clients.
+    socket.emit('ROOM_STATE_UPDATE', Object.values(gameState.players));
+
     // 1. Handle player joining the lobby
     socket.on('JOIN_LOBBY', (data) => {
+        if (gameState.players[socket.id]) {
+            socket.emit('JOIN_ERROR', { message: 'You have already joined this lobby.' });
+            return;
+        }
+
         // Simple verification to ensure names are unique
         const nameExists = Object.values(gameState.players).some(p => p.name === data.name);
         if (nameExists) {
@@ -39,15 +53,30 @@ io.on('connection', (socket) => {
             return;
         }
 
+        const usedColors = new Set(
+            Object.values(gameState.players).map(player => player.color)
+        );
+        const playerSlot = PLAYER_COLORS.findIndex(
+            playerColor => !usedColors.has(playerColor)
+        );
+
+        if (playerSlot === -1) {
+            socket.emit('JOIN_ERROR', { message: 'The lobby is full. Maximum 4 players.' });
+            return;
+        }
+
+        const color = PLAYER_COLORS[playerSlot];
+
         // Initialize player structure on server side with default parameters
         gameState.players[socket.id] = {
             id: socket.id,
             name: data.name,
+            playerNumber: playerSlot + 1,
             x: ARENA_WIDTH / 2, // Temporary placeholder spawn coordinates
             y: ARENA_HEIGHT / 2,
             dx: 0, // Initial velocity vectors
             dy: 0,
-            color: data.color || '#00E5FF',
+            color,
             isAlive: true,
             score: 0
         };
