@@ -25,6 +25,10 @@ const io = new Server(httpServer, {
 });
 
 app.use(express.static(path.join(import.meta.dirname, 'public')));
+app.use(
+    '/vendor/howler',
+    express.static(path.join(import.meta.dirname, 'node_modules/howler/dist'))
+);
 
 io.on('connection', (socket) => {
     console.log(`Player connected: ${socket.id}`);

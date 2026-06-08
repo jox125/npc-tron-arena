@@ -18,8 +18,8 @@ import {
     updateScoreboard
 } from './ui.js';
 import {
-    playCountdownCue,
-    resetCountdownAudio,
+    handleGameAudio,
+    preloadAudio,
     unlockAudio
 } from './audio.js';
 
@@ -49,6 +49,7 @@ startInput(socket);
 
 document.addEventListener('pointerdown', unlockAudio, { once: true });
 document.addEventListener('keydown', unlockAudio, { once: true });
+preloadAudio();
 
 document.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape' || event.repeat) {
@@ -177,6 +178,7 @@ socket.on('GAME_STATE_UPDATE', gameState => {
     currentGameStatus = gameState.gameStatus;
 
     updateScoreboard(players, currentPlayerId);
+    handleGameAudio(gameState, state.current, currentPlayerId);
     if (gameState.systemNotice?.id !== lastSystemNoticeId) {
         lastSystemNoticeId = gameState.systemNotice?.id ?? null;
         showSystemNotice(gameState.systemNotice);
@@ -202,9 +204,6 @@ socket.on('GAME_STATE_UPDATE', gameState => {
 
     if (gameState.gameStatus === 'COUNTDOWN') {
         renderCountdown(gameState.timer, currentPlayer);
-        playCountdownCue(gameState.timer);
-    } else {
-        resetCountdownAudio();
     }
 
     if (gameState.gameStatus === 'PAUSED') {

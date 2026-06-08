@@ -66,6 +66,7 @@
 
 * Set up **Howler.js** to handle audio asset loading and pre-loading without bottlenecking the rendering pipeline.
 * Map sound triggers to specific state notifications: play distinct audio cues for round start, player elimination, and match victory.
+* Keep public elimination and victory audio hooks ready for the collision and multi-round state managers.
 
 
 ### Teammate 3: Map Boundary UI & Polish
