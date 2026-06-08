@@ -39,11 +39,11 @@ function renderPlayers(prev, curr, t) {
         const prevPlayer = prevPlayers[id];
         
         // Interpolate player position
-        const x = prevPlayer
+        const x = (prevPlayer && !player.teleported)
             ? prevPlayer.x + (player.x - prevPlayer.x) * t
             : player.x;
 
-        const y = prevPlayer
+        const y = (prevPlayer && !player.teleported)
             ? prevPlayer.y + (player.y - prevPlayer.y) * t
             : player.y;
 

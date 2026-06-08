@@ -1,3 +1,4 @@
+import { checkTrailCollision } from './collision.js';
 // Game dimensions configuration
 export const ARENA_WIDTH = 800;
 export const ARENA_HEIGHT = 800;
@@ -23,13 +24,39 @@ export function updateGamePhysics() {
     Object.values(gameState.players).forEach(player => {
         if (!player.isAlive) return;
 
+        player.teleported = false;
+
         // Apply continuous physics vectors
         player.x += player.dx;
         player.y += player.dy;
 
-        // TODO: Handle screen wrapping calculations here
-        // TODO: Update active trail line dimensions here
-        // TODO: Process trail collision interception mechanics here
+        // Track leading segment expansion values
+        const currentSegment = gameState.trails.find(t => t.id === player.currentTrailId);
+        if (currentSegment) {
+            currentSegment.x2 = player.x;
+            currentSegment.y2 = player.y;
+        }
+        // Handle screen wrapping calculations
+        let crossedBoundary = false;
+        if (player.x > ARENA_WIDTH)  { player.x = 0; crossedBoundary = true; }
+        else if (player.x < 0)       { player.x = ARENA_WIDTH; crossedBoundary = true; }
+        else if (player.y > ARENA_HEIGHT) { player.y = 0; crossedBoundary = true; }
+        else if (player.y < 0)       { player.y = ARENA_HEIGHT; crossedBoundary = true; }
+
+        // If wrapped, break the laser link so it doesn't draw diagonally across the arena
+        if (crossedBoundary) {
+            player.teleported = true;
+            startNewTrailSegment(player);
+        }
+    });
+
+    // Run the collision engine loop
+    Object.values(gameState.players).forEach(player => {
+        if (!player.isAlive) return;
+
+        if (checkTrailCollision(player, gameState.trails)) {
+            eliminatePlayer(player.id);
+        }
     });
 }
 
@@ -39,6 +66,23 @@ export function getNextPlayerNumber() {
         if (!existingNumbers.includes(i)) return i;
     }
     return 1;
+}
+
+export function startNewTrailSegment(player) {
+    const segmentId = `${player.id}-${Date.now()}-${Math.random()}`;
+
+    const newSegment = {
+        id: segmentId,
+        owner: player.id,
+        x1: player.x,
+        y1: player.y,
+        x2: player.x,
+        y2: player.y,
+        color: player.color
+    };
+
+    gameState.trails.push(newSegment);
+    player.currentTrailId = segmentId;
 }
 
 export function eliminatePlayer(playerId) {
