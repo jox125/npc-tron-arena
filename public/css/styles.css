@@ -499,13 +499,7 @@ input {
 }
 
 .countdown__number.is-ticking {
-    animation: countdown-arrive 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-.countdown__number.is-launching {
-    font-size: clamp(5rem, 18vw, 12rem);
-    letter-spacing: 0.08em;
-    animation: countdown-launch 800ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: countdown-arrive 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .countdown__hint {
@@ -530,7 +524,7 @@ input {
 }
 
 .countdown-cycle.is-riding {
-    animation: cycle-ride 1.5s cubic-bezier(0.35, 0, 0.75, 1) forwards;
+    animation: cycle-ride 700ms cubic-bezier(0.35, 0, 0.75, 1) forwards;
 }
 
 .countdown-cycle__trail {
@@ -593,9 +587,129 @@ input {
     left: 8px;
 }
 
-.state-message {
+.overlay-panel {
     position: relative;
     z-index: 1;
+    overflow-y: auto;
+    width: min(640px, calc(100vw - 32px));
+    max-height: calc(100vh - 32px);
+    border: 1px solid color-mix(in srgb, var(--overlay-color) 72%, transparent);
+    padding: clamp(28px, 5vw, 54px);
+    background: rgba(2, 8, 15, 0.9);
+    box-shadow:
+        0 0 36px color-mix(in srgb, var(--overlay-color) 24%, transparent),
+        inset 0 0 32px color-mix(in srgb, var(--overlay-color) 8%, transparent);
+    clip-path: polygon(0 0, calc(100% - 28px) 0, 100% 28px, 100% 100%, 28px 100%, 0 calc(100% - 28px));
+}
+
+.overlay-panel__eyebrow {
+    margin: 0 0 12px;
+    color: var(--overlay-color);
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+}
+
+.overlay-panel h2 {
+    margin: 0;
+    color: var(--text);
+    font-size: clamp(2.2rem, 7vw, 5rem);
+    letter-spacing: 0.04em;
+    line-height: 1;
+    text-shadow: 0 0 24px color-mix(in srgb, var(--overlay-color) 64%, transparent);
+    text-transform: uppercase;
+}
+
+.pause-symbol {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin: 8px auto 28px;
+}
+
+.pause-symbol span {
+    width: 18px;
+    height: 70px;
+    background: var(--overlay-color);
+    box-shadow: 0 0 22px var(--overlay-color);
+}
+
+.paused-view__player,
+.result-view__winner {
+    margin: 22px 0 0;
+    color: var(--overlay-color);
+    font-size: clamp(1rem, 2.5vw, 1.35rem);
+    font-weight: 750;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.overlay-panel__hint {
+    margin: 34px 0 0;
+    color: var(--muted);
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.overlay-panel kbd {
+    margin: 0 5px;
+    border: 1px solid var(--overlay-color);
+    border-radius: 3px;
+    padding: 4px 8px;
+    color: var(--text);
+    background: #06111d;
+    box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--overlay-color) 28%, transparent);
+    font: inherit;
+}
+
+.result-rankings {
+    display: grid;
+    gap: 10px;
+    margin: 30px 0 0;
+    padding: 0;
+    list-style: none;
+    text-align: left;
+}
+
+.result-rankings__item {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
+    align-items: center;
+    gap: 14px;
+    border-left: 3px solid var(--player-color);
+    padding: 13px 16px;
+    background: color-mix(in srgb, var(--player-color) 9%, transparent);
+}
+
+.result-rankings__placement {
+    color: var(--player-color);
+    font-size: 1.6rem;
+    font-weight: 900;
+    text-align: center;
+    text-shadow: 0 0 10px var(--player-color);
+}
+
+.result-rankings__identity {
+    overflow: hidden;
+    font-weight: 750;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.result-view__actions {
+    display: grid;
+    gap: 4px;
+    margin-top: 28px;
+}
+
+.result-view__actions .overlay-panel__hint {
+    margin-top: 12px;
+}
+
+.result-view__actions .overlay-panel__hint.error {
+    color: var(--danger);
 }
 
 @keyframes countdown-arrive {
@@ -617,25 +731,6 @@ input {
     100% {
         opacity: 0.88;
         transform: translateZ(0) scale(1);
-    }
-}
-
-@keyframes countdown-launch {
-    0% {
-        opacity: 0;
-        filter: blur(16px);
-        transform: scale(0.3);
-    }
-
-    35% {
-        opacity: 1;
-        filter: blur(0);
-        transform: scale(1.15);
-    }
-
-    100% {
-        opacity: 0;
-        transform: scale(2.3);
     }
 }
 
@@ -670,7 +765,6 @@ input {
 @media (prefers-reduced-motion: reduce) {
     .overlay::before,
     .countdown__number.is-ticking,
-    .countdown__number.is-launching,
     .countdown-cycle.is-riding {
         animation-duration: 1ms;
         animation-iteration-count: 1;
@@ -688,5 +782,9 @@ input {
 
     .panel {
         padding: 24px;
+    }
+
+    .result-rankings__item {
+        grid-template-columns: 36px minmax(0, 1fr);
     }
 }

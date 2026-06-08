@@ -55,7 +55,7 @@ function playCycleLaunch() {
     const filter = context.createBiquadFilter();
     const gain = context.createGain();
     const startTime = context.currentTime;
-    const duration = 1.5;
+    const duration = 0.7;
 
     oscillator.type = 'sawtooth';
     oscillator.frequency.setValueAtTime(70, startTime);

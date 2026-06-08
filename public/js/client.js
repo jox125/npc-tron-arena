@@ -7,6 +7,9 @@ import {
     showStartError,
     showScreen,
     renderCountdown,
+    renderPaused,
+    renderRoundResult,
+    showReturnToLobbyError,
     updateArenaIdentity,
     updateLobbyActions,
     updateLobbyPlayers,
@@ -30,6 +33,7 @@ const joinForm = document.querySelector('#join-form');
 const playerNameInput = document.querySelector('#player-name');
 const joinButton = document.querySelector('#join-button');
 const startGameButton = document.querySelector('#start-game-button');
+const returnToLobbyButton = document.querySelector('#return-to-lobby-button');
 let currentPlayerId = null;
 let lobbyPlayers = [];
 let currentGameStatus = 'LOBBY';
@@ -75,6 +79,11 @@ startGameButton.addEventListener('click', () => {
     socket.emit('START_GAME');
 });
 
+returnToLobbyButton.addEventListener('click', () => {
+    returnToLobbyButton.disabled = true;
+    socket.emit('RETURN_TO_LOBBY');
+});
+
 socket.on('JOIN_SUCCESS', ({ playerId }) => {
     currentPlayerId = playerId;
     playerNameInput.disabled = true;
@@ -84,7 +93,15 @@ socket.on('JOIN_SUCCESS', ({ playerId }) => {
     updateLobbyActions(lobbyPlayers, currentPlayerId);
 });
 
-socket.on('JOIN_ERROR', ({ message }) => {
+socket.on('JOIN_ERROR', ({ code, message }) => {
+    if (code === 'MATCH_IN_PROGRESS' || currentGameStatus !== 'LOBBY') {
+        playerNameInput.disabled = true;
+        joinButton.disabled = true;
+        joinButton.textContent = 'Match in progress';
+        showMatchInProgress();
+        return;
+    }
+
     joinButton.disabled = false;
     showJoinMessage(message);
     playerNameInput.select();
@@ -92,6 +109,10 @@ socket.on('JOIN_ERROR', ({ message }) => {
 
 socket.on('START_ERROR', ({ message }) => {
     showStartError(message);
+});
+
+socket.on('RETURN_TO_LOBBY_ERROR', ({ message }) => {
+    showReturnToLobbyError(message);
 });
 
 socket.on('HOST_CHANGED', ({ message }) => {
@@ -135,6 +156,18 @@ socket.on('GAME_STATE_UPDATE', gameState => {
         playCountdownCue(gameState.timer);
     } else {
         resetCountdownAudio();
+    }
+
+    if (gameState.gameStatus === 'PAUSED') {
+        renderPaused(gameState.pausedBy, currentPlayer);
+    }
+
+    if (gameState.gameStatus === 'GAME_OVER') {
+        renderRoundResult(
+            gameState.roundResult,
+            players,
+            currentPlayerId
+        );
     }
 
     updateGameState(gameState);

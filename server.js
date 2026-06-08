@@ -3,7 +3,19 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import path from 'path';
 
-import { gameState, updateGamePhysics, ARENA_WIDTH, ARENA_HEIGHT, getNextPlayerNumber } from './src/gameEngine.js';
+import {
+    gameState,
+    updateGamePhysics,
+    ARENA_WIDTH,
+    ARENA_HEIGHT,
+    getNextPlayerNumber,
+    eliminatePlayer,
+    finishRound,
+    resetGameToLobby
+} from './src/gameEngine.js';
+
+const COUNTDOWN_STEP_MS = 750;
+let countdownInterval = null;
 
 const app = express();
 const httpServer = createServer(app);
@@ -15,9 +27,18 @@ app.use(express.static(path.join(import.meta.dirname, 'public')));
 
 io.on('connection', (socket) => {
     console.log(`Player connected: ${socket.id}`);
+    socket.emit('GAME_STATE_UPDATE', gameState);
 
     // 1. Handle joining the lobby
     socket.on('JOIN_LOBBY', (data) => {
+        if (gameState.gameStatus !== "LOBBY") {
+            socket.emit('JOIN_ERROR', {
+                code: 'MATCH_IN_PROGRESS',
+                message: 'A match is currently in progress. Wait for the next lobby.'
+            });
+            return;
+        }
+
         const playersArray = Object.values(gameState.players);
 
         if (playersArray.length >= 4) {
@@ -58,6 +79,11 @@ io.on('connection', (socket) => {
             return;
         }
 
+        if (gameState.gameStatus !== "LOBBY") {
+            socket.emit('START_ERROR', { message: 'The match has already started.' });
+            return;
+        }
+
         if (Object.keys(gameState.players).length < 2) {
             socket.emit('START_ERROR', { message: 'At least 2 players are required to start.' });
             return;
@@ -66,13 +92,23 @@ io.on('connection', (socket) => {
         // Advance state to countdown
         gameState.gameStatus = "COUNTDOWN";
         gameState.timer = 3;
+        gameState.pausedBy = null;
+        gameState.roundResult = null;
+        gameState.eliminationOrder = [];
+        gameState.eliminatedPlayers = {};
+        gameState.trails = [];
+        Object.values(gameState.players).forEach(p => {
+            p.isAlive = true;
+            delete p.eliminatedAt;
+        });
         io.emit('GAME_STATE_UPDATE', gameState);
 
-        // Run a simple 1-second interval handler just for the countdown clock
-        let countdownInterval = setInterval(() => {
+        // Four 750 ms phases: 3, 2, 1, then the cycle launch animation.
+        countdownInterval = setInterval(() => {
             gameState.timer--;
             if (gameState.timer < 0) {
                 clearInterval(countdownInterval);
+                countdownInterval = null;
                 gameState.gameStatus = "PLAYING";
 
                 // Position players symmetrically at their starting edges facing the center
@@ -84,7 +120,7 @@ io.on('connection', (socket) => {
                 });
             }
             io.emit('GAME_STATE_UPDATE', gameState);
-        }, 1000);
+        }, COUNTDOWN_STEP_MS);
     });
 
     // 3. Handle Pause Menu (ESC Key event sent by client.js)
@@ -94,13 +130,42 @@ io.on('connection', (socket) => {
 
         if (gameState.gameStatus === "PLAYING") {
             gameState.gameStatus = "PAUSED";
+            gameState.pausedBy = {
+                id: player.id,
+                name: player.name,
+                playerNumber: player.playerNumber,
+                color: player.color
+            };
         } else if (gameState.gameStatus === "PAUSED") {
             gameState.gameStatus = "PLAYING";
+            gameState.pausedBy = null;
         }
         io.emit('GAME_STATE_UPDATE', gameState);
     });
 
-    // 4. Handle steering inputs
+    // 4. Return all connected players to the lobby after the round results.
+    socket.on('RETURN_TO_LOBBY', () => {
+        const player = gameState.players[socket.id];
+        if (!player || player.playerNumber !== 1) {
+            socket.emit('RETURN_TO_LOBBY_ERROR', {
+                message: 'Only Player 1 can return the room to the lobby.'
+            });
+            return;
+        }
+
+        if (gameState.gameStatus !== "GAME_OVER") {
+            socket.emit('RETURN_TO_LOBBY_ERROR', {
+                message: 'The round must be finished before returning to the lobby.'
+            });
+            return;
+        }
+
+        resetGameToLobby();
+        io.emit('ROOM_STATE_UPDATE', Object.values(gameState.players));
+        io.emit('GAME_STATE_UPDATE', gameState);
+    });
+
+    // 5. Handle steering inputs
     socket.on('PLAYER_INPUT', (data) => {
         const player = gameState.players[socket.id];
         if (!player || !player.isAlive || gameState.gameStatus !== "PLAYING") return;
@@ -113,16 +178,34 @@ io.on('connection', (socket) => {
         }
     });
 
-    // 5. Handle disconnection
+    // 6. Handle disconnection
     socket.on('disconnect', () => {
         console.log(`Player disconnected: ${socket.id}`);
+
+        if (["PLAYING", "PAUSED"].includes(gameState.gameStatus)) {
+            eliminatePlayer(socket.id);
+            resolveRoundEnd();
+        }
+
         delete gameState.players[socket.id];
+
+        if (gameState.gameStatus === "COUNTDOWN"
+            && Object.keys(gameState.players).length < 2) {
+            clearInterval(countdownInterval);
+            countdownInterval = null;
+            resetGameToLobby();
+        }
 
         // If empty, revert back to lobby state
         if (Object.keys(gameState.players).length === 0) {
-            gameState.gameStatus = "LOBBY";
-            gameState.trails = [];
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+            }
+            resetGameToLobby();
         }
+
+        ensureHost();
 
         io.emit('ROOM_STATE_UPDATE', Object.values(gameState.players));
         io.emit('GAME_STATE_UPDATE', gameState);
@@ -134,8 +217,39 @@ const TICK_RATE = 30;
 setInterval(() => {
     if (gameState.gameStatus !== "PLAYING") return;
     updateGamePhysics();
+    resolveRoundEnd();
     io.emit('GAME_STATE_UPDATE', gameState);
 }, 1000 / TICK_RATE);
+
+function resolveRoundEnd() {
+    if (!["PLAYING", "PAUSED"].includes(gameState.gameStatus)) return false;
+
+    const players = Object.values(gameState.players);
+    if (players.length < 2) return false;
+
+    players
+        .filter(player => !player.isAlive && !gameState.eliminationOrder.includes(player.id))
+        .forEach(player => gameState.eliminationOrder.push(player.id));
+
+    const alivePlayers = players.filter(player => player.isAlive);
+    if (alivePlayers.length > 1) return false;
+
+    return finishRound(alivePlayers[0]?.id ?? null, gameState.eliminationOrder);
+}
+
+function ensureHost() {
+    const players = Object.values(gameState.players);
+    if (players.length === 0 || players.some(player => player.playerNumber === 1)) {
+        return;
+    }
+
+    const newHost = players
+        .sort((a, b) => a.playerNumber - b.playerNumber)[0];
+    newHost.playerNumber = 1;
+    io.emit('HOST_CHANGED', {
+        message: `${newHost.name} is now Player 1 and room host.`
+    });
+}
 
 const PORT = process.env.PORT || 3000;
 httpServer.listen(PORT, () => {

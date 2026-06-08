@@ -113,9 +113,30 @@
             </div>
         </div>
 
-        <div id="state-message" class="state-message hidden">
-            <h2 id="overlay-title"></h2>
-            <p id="overlay-message"></p>
+        <div id="paused-content" class="overlay-panel paused-view hidden" role="dialog" aria-labelledby="paused-title">
+            <p class="overlay-panel__eyebrow">Game state // suspended</p>
+            <div class="pause-symbol" aria-hidden="true">
+                <span></span>
+                <span></span>
+            </div>
+            <h2 id="paused-title">Game paused</h2>
+            <p id="paused-by" class="paused-view__player">Paused by player</p>
+            <p class="overlay-panel__hint">
+                Press <kbd>Esc</kbd> to resume the match
+            </p>
+        </div>
+
+        <div id="round-result-content" class="overlay-panel result-view hidden" aria-labelledby="round-result-title">
+            <p id="round-result-label" class="overlay-panel__eyebrow">Round complete</p>
+            <h2 id="round-result-title">Round results</h2>
+            <p id="round-winner" class="result-view__winner"></p>
+            <ol id="round-rankings" class="result-rankings"></ol>
+            <div class="result-view__actions">
+                <button id="return-to-lobby-button" class="neon-button hidden" type="button">
+                    Back to lobby
+                </button>
+                <p id="return-to-lobby-message" class="overlay-panel__hint"></p>
+            </div>
         </div>
     </section>
 </main>
