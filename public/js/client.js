@@ -9,7 +9,9 @@ import {
     renderCountdown,
     renderPaused,
     renderRoundResult,
+    showPauseMenuError,
     showReturnToLobbyError,
+    showSystemNotice,
     updateArenaIdentity,
     updateLobbyActions,
     updateLobbyPlayers,
@@ -33,10 +35,14 @@ const joinForm = document.querySelector('#join-form');
 const playerNameInput = document.querySelector('#player-name');
 const joinButton = document.querySelector('#join-button');
 const startGameButton = document.querySelector('#start-game-button');
+const leaveLobbyButton = document.querySelector('#leave-lobby-button');
 const returnToLobbyButton = document.querySelector('#return-to-lobby-button');
+const resumeGameButton = document.querySelector('#resume-game-button');
+const quitMatchButton = document.querySelector('#quit-match-button');
 let currentPlayerId = null;
 let lobbyPlayers = [];
 let currentGameStatus = 'LOBBY';
+let lastSystemNoticeId = null;
 
 // Starts WASD/Arrow key handling
 startInput(socket);
@@ -49,12 +55,12 @@ document.addEventListener('keydown', (event) => {
         return;
     }
 
-    const canTogglePause =
+    const canPause =
         currentPlayerId &&
-        ['PLAYING', 'PAUSED'].includes(currentGameStatus);
+        currentGameStatus === 'PLAYING';
 
-    if (canTogglePause) {
-        socket.emit('TOGGLE_PAUSE');
+    if (canPause) {
+        socket.emit('PAUSE_GAME');
     }
 });
 
@@ -79,9 +85,24 @@ startGameButton.addEventListener('click', () => {
     socket.emit('START_GAME');
 });
 
+leaveLobbyButton.addEventListener('click', () => {
+    leaveLobbyButton.disabled = true;
+    socket.emit('LEAVE_LOBBY');
+});
+
 returnToLobbyButton.addEventListener('click', () => {
     returnToLobbyButton.disabled = true;
     socket.emit('RETURN_TO_LOBBY');
+});
+
+resumeGameButton.addEventListener('click', () => {
+    resumeGameButton.disabled = true;
+    socket.emit('RESUME_GAME');
+});
+
+quitMatchButton.addEventListener('click', () => {
+    quitMatchButton.disabled = true;
+    socket.emit('QUIT_MATCH');
 });
 
 socket.on('JOIN_SUCCESS', ({ playerId }) => {
@@ -107,12 +128,36 @@ socket.on('JOIN_ERROR', ({ code, message }) => {
     playerNameInput.select();
 });
 
+socket.on('LEAVE_LOBBY_SUCCESS', () => {
+    currentPlayerId = null;
+    playerNameInput.disabled = false;
+    joinButton.disabled = false;
+    joinButton.textContent = 'Enter lobby';
+    leaveLobbyButton.disabled = false;
+    showJoinMessage('You left the lobby.', 'success');
+    updateLobbyActions(lobbyPlayers, currentPlayerId);
+    playerNameInput.focus();
+});
+
+socket.on('LEAVE_LOBBY_ERROR', ({ message }) => {
+    leaveLobbyButton.disabled = false;
+    showJoinMessage(message);
+});
+
 socket.on('START_ERROR', ({ message }) => {
     showStartError(message);
 });
 
 socket.on('RETURN_TO_LOBBY_ERROR', ({ message }) => {
     showReturnToLobbyError(message);
+});
+
+socket.on('QUIT_MATCH_ERROR', ({ message }) => {
+    showPauseMenuError(message);
+});
+
+socket.on('QUIT_MATCH_SUCCESS', () => {
+    currentPlayerId = null;
 });
 
 socket.on('HOST_CHANGED', ({ message }) => {
@@ -132,6 +177,10 @@ socket.on('GAME_STATE_UPDATE', gameState => {
     currentGameStatus = gameState.gameStatus;
 
     updateScoreboard(players, currentPlayerId);
+    if (gameState.systemNotice?.id !== lastSystemNoticeId) {
+        lastSystemNoticeId = gameState.systemNotice?.id ?? null;
+        showSystemNotice(gameState.systemNotice);
+    }
 
     if (gameState.gameStatus !== 'LOBBY' && !currentPlayer) {
         playerNameInput.disabled = true;

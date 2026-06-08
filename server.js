@@ -16,6 +16,7 @@ import {
 
 const COUNTDOWN_STEP_MS = 750;
 let countdownInterval = null;
+let systemNoticeId = 0;
 
 const app = express();
 const httpServer = createServer(app);
@@ -62,6 +63,7 @@ io.on('connection', (socket) => {
             dx: 0,
             dy: 0,
             color: ['#00d9ff', '#ff3f68', '#29ff9a', '#ffb000'][playerNumber - 1], // Cycle colors matching styles.css
+            isHost: !playersArray.some(player => player.isHost),
             isAlive: true,
             score: 0
         };
@@ -70,12 +72,28 @@ io.on('connection', (socket) => {
         io.emit('ROOM_STATE_UPDATE', Object.values(gameState.players));
     });
 
+    socket.on('LEAVE_LOBBY', () => {
+        const player = gameState.players[socket.id];
+        if (!player || gameState.gameStatus !== "LOBBY") {
+            socket.emit('LEAVE_LOBBY_ERROR', {
+                message: 'You can only leave while waiting in the lobby.'
+            });
+            return;
+        }
+
+        delete gameState.players[socket.id];
+        ensureHost();
+        socket.emit('LEAVE_LOBBY_SUCCESS');
+        io.emit('ROOM_STATE_UPDATE', Object.values(gameState.players));
+        io.emit('GAME_STATE_UPDATE', gameState);
+    });
+
     // 2. Handle the Host starting the game
     socket.on('START_GAME', () => {
         const player = gameState.players[socket.id];
-        // Only P1 (Host) can trigger start
-        if (!player || player.playerNumber !== 1) {
-            socket.emit('START_ERROR', { message: 'Only Player 1 can start the match.' });
+        // Only the current room host can trigger start.
+        if (!player || !player.isHost) {
+            socket.emit('START_ERROR', { message: 'Only the room host can start the match.' });
             return;
         }
 
@@ -123,32 +141,61 @@ io.on('connection', (socket) => {
         }, COUNTDOWN_STEP_MS);
     });
 
-    // 3. Handle Pause Menu (ESC Key event sent by client.js)
-    socket.on('TOGGLE_PAUSE', () => {
+    // 3. Open the universal game menu with ESC.
+    socket.on('PAUSE_GAME', () => {
         const player = gameState.players[socket.id];
-        if (!player) return;
+        if (!player || gameState.gameStatus !== "PLAYING") return;
 
-        if (gameState.gameStatus === "PLAYING") {
-            gameState.gameStatus = "PAUSED";
-            gameState.pausedBy = {
-                id: player.id,
-                name: player.name,
-                playerNumber: player.playerNumber,
-                color: player.color
-            };
-        } else if (gameState.gameStatus === "PAUSED") {
-            gameState.gameStatus = "PLAYING";
-            gameState.pausedBy = null;
+        gameState.gameStatus = "PAUSED";
+        gameState.pausedBy = getPlayerIdentity(player);
+        setSystemNotice(
+            'PAUSED',
+            player,
+            `P${player.playerNumber} // ${player.name} paused the match.`
+        );
+        io.emit('GAME_STATE_UPDATE', gameState);
+    });
+
+    socket.on('RESUME_GAME', () => {
+        const player = gameState.players[socket.id];
+        if (!player || gameState.gameStatus !== "PAUSED") return;
+
+        gameState.gameStatus = "PLAYING";
+        gameState.pausedBy = null;
+        setSystemNotice(
+            'RESUMED',
+            player,
+            `P${player.playerNumber} // ${player.name} resumed the match.`
+        );
+        io.emit('GAME_STATE_UPDATE', gameState);
+    });
+
+    socket.on('QUIT_MATCH', () => {
+        const player = gameState.players[socket.id];
+        if (!player || !["PLAYING", "PAUSED"].includes(gameState.gameStatus)) {
+            socket.emit('QUIT_MATCH_ERROR', {
+                message: 'You can only quit an active match.'
+            });
+            return;
         }
+
+        setSystemNotice(
+            'QUIT',
+            player,
+            `P${player.playerNumber} // ${player.name} quit the match.`
+        );
+        removePlayerFromMatch(socket.id);
+        socket.emit('QUIT_MATCH_SUCCESS');
+        io.emit('ROOM_STATE_UPDATE', Object.values(gameState.players));
         io.emit('GAME_STATE_UPDATE', gameState);
     });
 
     // 4. Return all connected players to the lobby after the round results.
     socket.on('RETURN_TO_LOBBY', () => {
         const player = gameState.players[socket.id];
-        if (!player || player.playerNumber !== 1) {
+        if (!player || !player.isHost) {
             socket.emit('RETURN_TO_LOBBY_ERROR', {
-                message: 'Only Player 1 can return the room to the lobby.'
+                message: 'Only the room host can return the room to the lobby.'
             });
             return;
         }
@@ -183,11 +230,10 @@ io.on('connection', (socket) => {
         console.log(`Player disconnected: ${socket.id}`);
 
         if (["PLAYING", "PAUSED"].includes(gameState.gameStatus)) {
-            eliminatePlayer(socket.id);
-            resolveRoundEnd();
+            removePlayerFromMatch(socket.id);
+        } else {
+            delete gameState.players[socket.id];
         }
-
-        delete gameState.players[socket.id];
 
         if (gameState.gameStatus === "COUNTDOWN"
             && Object.keys(gameState.players).length < 2) {
@@ -237,17 +283,43 @@ function resolveRoundEnd() {
     return finishRound(alivePlayers[0]?.id ?? null, gameState.eliminationOrder);
 }
 
+function removePlayerFromMatch(playerId) {
+    eliminatePlayer(playerId);
+    resolveRoundEnd();
+    delete gameState.players[playerId];
+    ensureHost();
+}
+
+function getPlayerIdentity(player) {
+    return {
+        id: player.id,
+        name: player.name,
+        playerNumber: player.playerNumber,
+        color: player.color
+    };
+}
+
+function setSystemNotice(action, player, message) {
+    gameState.systemNotice = {
+        id: ++systemNoticeId,
+        action,
+        actor: getPlayerIdentity(player),
+        message,
+        createdAt: Date.now()
+    };
+}
+
 function ensureHost() {
     const players = Object.values(gameState.players);
-    if (players.length === 0 || players.some(player => player.playerNumber === 1)) {
+    if (players.length === 0 || players.some(player => player.isHost)) {
         return;
     }
 
     const newHost = players
         .sort((a, b) => a.playerNumber - b.playerNumber)[0];
-    newHost.playerNumber = 1;
+    newHost.isHost = true;
     io.emit('HOST_CHANGED', {
-        message: `${newHost.name} is now Player 1 and room host.`
+        message: `P${newHost.playerNumber} // ${newHost.name} is now room host.`
     });
 }
 

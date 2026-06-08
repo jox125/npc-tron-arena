@@ -7,6 +7,7 @@ export let gameState = {
     gameStatus: "LOBBY", // LOBBY, COUNTDOWN, PLAYING, PAUSED, GAME_OVER
     timer: 0,
     pausedBy: null,
+    systemNotice: null,
     roundResult: null,
     eliminationOrder: [],
     eliminatedPlayers: {},
@@ -93,6 +94,7 @@ export function resetGameToLobby() {
     gameState.gameStatus = "LOBBY";
     gameState.timer = 0;
     gameState.pausedBy = null;
+    gameState.systemNotice = null;
     gameState.roundResult = null;
     gameState.eliminationOrder = [];
     gameState.eliminatedPlayers = {};

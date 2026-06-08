@@ -11,6 +11,9 @@ const countdownNumber = document.querySelector('#countdown-number');
 const countdownCycle = document.querySelector('#countdown-cycle');
 const pausedContent = document.querySelector('#paused-content');
 const pausedBy = document.querySelector('#paused-by');
+const resumeGameButton = document.querySelector('#resume-game-button');
+const quitMatchButton = document.querySelector('#quit-match-button');
+const pauseMenuMessage = document.querySelector('#pause-menu-message');
 const roundResultContent = document.querySelector('#round-result-content');
 const roundResultLabel = document.querySelector('#round-result-label');
 const roundResultTitle = document.querySelector('#round-result-title');
@@ -24,7 +27,10 @@ const playerCount = document.querySelector('#player-count');
 const joinMessage = document.querySelector('#join-message');
 const lobbyActions = document.querySelector('#lobby-actions');
 const startGameButton = document.querySelector('#start-game-button');
+const leaveLobbyButton = document.querySelector('#leave-lobby-button');
 const startGameMessage = document.querySelector('#start-game-message');
+const systemNotice = document.querySelector('#system-notice');
+let systemNoticeTimeout = null;
 
 export function showScreen(gameStatus) {
     lobbyScreen.classList.toggle('hidden', gameStatus !== 'LOBBY');
@@ -108,6 +114,30 @@ export function renderPaused(pauser, currentPlayer) {
     pausedBy.textContent = pauser
         ? `Paused by P${pauser.playerNumber} // ${pauser.name}`
         : 'The match has been paused';
+    resumeGameButton.disabled = false;
+    quitMatchButton.disabled = false;
+    pauseMenuMessage.textContent = 'Resume when all players are ready';
+    pauseMenuMessage.classList.remove('error');
+}
+
+export function showPauseMenuError(message) {
+    resumeGameButton.disabled = false;
+    quitMatchButton.disabled = false;
+    pauseMenuMessage.textContent = message;
+    pauseMenuMessage.classList.add('error');
+}
+
+export function showSystemNotice(notice) {
+    if (!notice || Date.now() - notice.createdAt > 5000) return;
+
+    clearTimeout(systemNoticeTimeout);
+    systemNotice.textContent = notice.message;
+    systemNotice.style.setProperty('--notice-color', notice.actor?.color ?? 'var(--cyan)');
+    systemNotice.classList.remove('hidden');
+
+    systemNoticeTimeout = setTimeout(() => {
+        systemNotice.classList.add('hidden');
+    }, 3200);
 }
 
 export function renderRoundResult(roundResult, players, currentPlayerId) {
@@ -147,13 +177,13 @@ export function renderRoundResult(roundResult, players, currentPlayerId) {
         roundRankings.append(item);
     });
 
-    const isHost = currentPlayer?.playerNumber === 1;
+    const isHost = currentPlayer?.isHost === true;
     returnToLobbyButton.classList.toggle('hidden', !isHost);
     returnToLobbyButton.disabled = false;
     returnToLobbyMessage.classList.remove('error');
     returnToLobbyMessage.textContent = isHost
         ? 'Open the lobby when everyone has reviewed the result.'
-        : 'Waiting for P1 to return the room to the lobby.';
+        : 'Waiting for the room host to return everyone to the lobby.';
 }
 
 export function showReturnToLobbyError(message) {
@@ -171,9 +201,10 @@ export function updateLobbyActions(players, currentPlayerId) {
         return;
     }
 
-    const isHost = currentPlayer.playerNumber === 1;
+    const isHost = currentPlayer.isHost === true;
     const canStart = isHost && players.length >= 2;
 
+    leaveLobbyButton.disabled = false;
     startGameButton.classList.toggle('hidden', !isHost);
     startGameButton.disabled = !canStart;
     startGameButton.textContent = canStart ? 'Start game' : 'Waiting for players';
@@ -183,7 +214,7 @@ export function updateLobbyActions(players, currentPlayerId) {
             ? `${players.length} players ready.`
             : 'At least 2 players are required to start.';
     } else {
-        startGameMessage.textContent = 'Waiting for P1 to start the game.';
+        startGameMessage.textContent = 'Waiting for the room host to start the game.';
     }
 
     startGameMessage.classList.remove('error', 'notice');
@@ -212,7 +243,8 @@ function createPlayerItem(player, className) {
     item.style.setProperty('--player-color', player.color);
     color.className = 'player-color';
     name.className = 'player-name';
-    name.textContent = `P${player.playerNumber} · ${player.name}`;
+    name.textContent =
+        `P${player.playerNumber} · ${player.name}${player.isHost ? ' (Host)' : ''}`;
     score.className = 'player-score';
     score.textContent = `${player.score ?? 0} pts`;
 

@@ -71,6 +71,9 @@
                         <button id="start-game-button" class="neon-button" type="button" disabled>
                             Waiting for players
                         </button>
+                        <button id="leave-lobby-button" class="menu-button menu-button--danger" type="button">
+                            Leave lobby
+                        </button>
                         <p id="start-game-message" class="lobby-actions__message" aria-live="polite"></p>
                     </div>
 
@@ -121,8 +124,16 @@
             </div>
             <h2 id="paused-title">Game paused</h2>
             <p id="paused-by" class="paused-view__player">Paused by player</p>
-            <p class="overlay-panel__hint">
-                Press <kbd>Esc</kbd> to resume the match
+            <div class="paused-view__actions">
+                <button id="resume-game-button" class="neon-button" type="button">
+                    Resume game
+                </button>
+                <button id="quit-match-button" class="menu-button menu-button--danger" type="button">
+                    Quit match
+                </button>
+            </div>
+            <p id="pause-menu-message" class="overlay-panel__hint">
+                Resume when all players are ready
             </p>
         </div>
 
@@ -139,6 +150,8 @@
             </div>
         </div>
     </section>
+
+    <aside id="system-notice" class="system-notice hidden" aria-live="assertive"></aside>
 </main>
 </body>
 </html>

@@ -653,6 +653,10 @@ input {
     text-transform: uppercase;
 }
 
+.overlay-panel__hint.error {
+    color: var(--danger);
+}
+
 .overlay-panel kbd {
     margin: 0 5px;
     border: 1px solid var(--overlay-color);
@@ -702,6 +706,54 @@ input {
     display: grid;
     gap: 4px;
     margin-top: 28px;
+}
+
+.paused-view__actions {
+    display: grid;
+    gap: 12px;
+    margin-top: 32px;
+}
+
+.menu-button {
+    cursor: pointer;
+    border: 1px solid var(--muted);
+    padding: 14px 20px;
+    color: var(--text);
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    background: rgba(6, 17, 29, 0.92);
+}
+
+.menu-button--danger {
+    border-color: var(--danger);
+    color: #ff9caf;
+}
+
+.menu-button:disabled {
+    cursor: wait;
+    opacity: 0.55;
+}
+
+.system-notice {
+    --notice-color: var(--cyan);
+
+    position: fixed;
+    z-index: 20;
+    top: 20px;
+    left: 50%;
+    width: min(520px, calc(100vw - 32px));
+    border: 1px solid var(--notice-color);
+    padding: 14px 18px;
+    color: var(--text);
+    font-size: 0.85rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-align: center;
+    text-transform: uppercase;
+    background: rgba(2, 8, 15, 0.96);
+    box-shadow: 0 0 24px color-mix(in srgb, var(--notice-color) 34%, transparent);
+    transform: translateX(-50%);
 }
 
 .result-view__actions .overlay-panel__hint {
