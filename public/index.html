@@ -6,6 +6,7 @@
     <title>Multiplay Tron Arena</title>
     <link rel="stylesheet" href="/css/styles.css">
     <script src="/socket.io/socket.io.js"></script>
+    <script src="/vendor/howler/howler.min.js"></script>
     <script type="module" src="/js/client.js"></script>
 </head>
 <body>
@@ -71,6 +72,9 @@
                         <button id="start-game-button" class="neon-button" type="button" disabled>
                             Waiting for players
                         </button>
+                        <button id="leave-lobby-button" class="menu-button menu-button--danger" type="button">
+                            Leave lobby
+                        </button>
                         <p id="start-game-message" class="lobby-actions__message" aria-live="polite"></p>
                     </div>
 
@@ -113,11 +117,42 @@
             </div>
         </div>
 
-        <div id="state-message" class="state-message hidden">
-            <h2 id="overlay-title"></h2>
-            <p id="overlay-message"></p>
+        <div id="paused-content" class="overlay-panel paused-view hidden" role="dialog" aria-labelledby="paused-title">
+            <p class="overlay-panel__eyebrow">Game state // suspended</p>
+            <div class="pause-symbol" aria-hidden="true">
+                <span></span>
+                <span></span>
+            </div>
+            <h2 id="paused-title">Game paused</h2>
+            <p id="paused-by" class="paused-view__player">Paused by player</p>
+            <div class="paused-view__actions">
+                <button id="resume-game-button" class="neon-button" type="button">
+                    Resume game
+                </button>
+                <button id="quit-match-button" class="menu-button menu-button--danger" type="button">
+                    Quit match
+                </button>
+            </div>
+            <p id="pause-menu-message" class="overlay-panel__hint">
+                Resume when all players are ready
+            </p>
+        </div>
+
+        <div id="round-result-content" class="overlay-panel result-view hidden" aria-labelledby="round-result-title">
+            <p id="round-result-label" class="overlay-panel__eyebrow">Round complete</p>
+            <h2 id="round-result-title">Round results</h2>
+            <p id="round-winner" class="result-view__winner"></p>
+            <ol id="round-rankings" class="result-rankings"></ol>
+            <div class="result-view__actions">
+                <button id="return-to-lobby-button" class="neon-button hidden" type="button">
+                    Back to lobby
+                </button>
+                <p id="return-to-lobby-message" class="overlay-panel__hint"></p>
+            </div>
         </div>
     </section>
+
+    <aside id="system-notice" class="system-notice hidden" aria-live="assertive"></aside>
 </main>
 </body>
 </html>

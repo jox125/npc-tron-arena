@@ -9,14 +9,28 @@ const countdownContent = document.querySelector('#countdown-content');
 const countdownPlayer = document.querySelector('#countdown-player');
 const countdownNumber = document.querySelector('#countdown-number');
 const countdownCycle = document.querySelector('#countdown-cycle');
-const stateMessage = document.querySelector('#state-message');
+const pausedContent = document.querySelector('#paused-content');
+const pausedBy = document.querySelector('#paused-by');
+const resumeGameButton = document.querySelector('#resume-game-button');
+const quitMatchButton = document.querySelector('#quit-match-button');
+const pauseMenuMessage = document.querySelector('#pause-menu-message');
+const roundResultContent = document.querySelector('#round-result-content');
+const roundResultLabel = document.querySelector('#round-result-label');
+const roundResultTitle = document.querySelector('#round-result-title');
+const roundWinner = document.querySelector('#round-winner');
+const roundRankings = document.querySelector('#round-rankings');
+const returnToLobbyButton = document.querySelector('#return-to-lobby-button');
+const returnToLobbyMessage = document.querySelector('#return-to-lobby-message');
 const lobbyPlayerList = document.querySelector('#lobby-player-list');
 const scoreboardList = document.querySelector('#scoreboard-list');
 const playerCount = document.querySelector('#player-count');
 const joinMessage = document.querySelector('#join-message');
 const lobbyActions = document.querySelector('#lobby-actions');
 const startGameButton = document.querySelector('#start-game-button');
+const leaveLobbyButton = document.querySelector('#leave-lobby-button');
 const startGameMessage = document.querySelector('#start-game-message');
+const systemNotice = document.querySelector('#system-notice');
+let systemNoticeTimeout = null;
 
 export function showScreen(gameStatus) {
     lobbyScreen.classList.toggle('hidden', gameStatus !== 'LOBBY');
@@ -27,10 +41,8 @@ export function showScreen(gameStatus) {
 
     overlay.classList.toggle('hidden', !showOverlay);
     countdownContent.classList.toggle('hidden', gameStatus !== 'COUNTDOWN');
-    stateMessage.classList.toggle(
-        'hidden',
-        !['PAUSED', 'GAME_OVER'].includes(gameStatus)
-    );
+    pausedContent.classList.toggle('hidden', gameStatus !== 'PAUSED');
+    roundResultContent.classList.toggle('hidden', gameStatus !== 'GAME_OVER');
 }
 
 export function showJoinMessage(message, type = 'error') {
@@ -75,18 +87,109 @@ export function renderCountdown(timer, player) {
     overlay.style.setProperty('--overlay-color', player.color);
     countdownPlayer.textContent =
         `Player ${player.playerNumber} // ${player.name}, get ready`;
-    countdownNumber.textContent = String(timer);
-    countdownNumber.classList.remove('is-ticking', 'is-launching');
+    countdownNumber.textContent = isLaunch ? '' : String(timer);
+    countdownNumber.classList.toggle('hidden', isLaunch);
+    countdownNumber.classList.remove('is-ticking');
     countdownCycle.classList.remove('is-riding');
 
-    // Force a reflow so the animation restarts for every server countdown tick.
-    void countdownNumber.offsetWidth;
-
-    countdownNumber.classList.add(isLaunch ? 'is-launching' : 'is-ticking');
-
     if (isLaunch) {
+        // Force a reflow so the launch animation restarts for each round.
+        void countdownCycle.offsetWidth;
         countdownCycle.classList.add('is-riding');
+        return;
     }
+
+    // Force a reflow so the number animation restarts for every countdown tick.
+    void countdownNumber.offsetWidth;
+    countdownNumber.classList.add('is-ticking');
+}
+
+export function renderPaused(pauser, currentPlayer) {
+    const accentPlayer = pauser || currentPlayer;
+
+    if (accentPlayer?.color) {
+        overlay.style.setProperty('--overlay-color', accentPlayer.color);
+    }
+
+    pausedBy.textContent = pauser
+        ? `Paused by P${pauser.playerNumber} // ${pauser.name}`
+        : 'The match has been paused';
+    resumeGameButton.disabled = false;
+    quitMatchButton.disabled = false;
+    pauseMenuMessage.textContent = 'Resume when all players are ready';
+    pauseMenuMessage.classList.remove('error');
+}
+
+export function showPauseMenuError(message) {
+    resumeGameButton.disabled = false;
+    quitMatchButton.disabled = false;
+    pauseMenuMessage.textContent = message;
+    pauseMenuMessage.classList.add('error');
+}
+
+export function showSystemNotice(notice) {
+    if (!notice || Date.now() - notice.createdAt > 5000) return;
+
+    clearTimeout(systemNoticeTimeout);
+    systemNotice.textContent = notice.message;
+    systemNotice.style.setProperty('--notice-color', notice.actor?.color ?? 'var(--cyan)');
+    systemNotice.classList.remove('hidden');
+
+    systemNoticeTimeout = setTimeout(() => {
+        systemNotice.classList.add('hidden');
+    }, 3200);
+}
+
+export function renderRoundResult(roundResult, players, currentPlayerId) {
+    const rankings = roundResult?.rankings ?? [];
+    const winner = players.find(player => player.id === roundResult?.winnerId)
+        ?? rankings.find(player => player.id === roundResult?.winnerId);
+    const currentPlayer = players.find(player => player.id === currentPlayerId)
+        ?? rankings.find(player => player.id === currentPlayerId);
+
+    roundResultLabel.textContent = 'Round complete';
+    roundResultTitle.textContent = winner
+        ? `${winner.name} wins`
+        : roundResult ? 'Round draw' : 'Round results';
+    roundWinner.textContent = winner
+        ? `P${winner.playerNumber} secured the grid`
+        : roundResult ? 'No light cycle survived' : 'Waiting for the final standings';
+
+    if (winner?.color) {
+        overlay.style.setProperty('--overlay-color', winner.color);
+    }
+
+    roundRankings.replaceChildren();
+
+    rankings.forEach((player) => {
+        const item = document.createElement('li');
+        const placement = document.createElement('span');
+        const identity = document.createElement('span');
+
+        item.className = 'result-rankings__item';
+        item.style.setProperty('--player-color', player.color);
+        placement.className = 'result-rankings__placement';
+        placement.textContent = String(player.placement);
+        identity.className = 'result-rankings__identity';
+        identity.textContent = `P${player.playerNumber} // ${player.name}`;
+
+        item.append(placement, identity);
+        roundRankings.append(item);
+    });
+
+    const isHost = currentPlayer?.isHost === true;
+    returnToLobbyButton.classList.toggle('hidden', !isHost);
+    returnToLobbyButton.disabled = false;
+    returnToLobbyMessage.classList.remove('error');
+    returnToLobbyMessage.textContent = isHost
+        ? 'Open the lobby when everyone has reviewed the result.'
+        : 'Waiting for the room host to return everyone to the lobby.';
+}
+
+export function showReturnToLobbyError(message) {
+    returnToLobbyButton.disabled = false;
+    returnToLobbyMessage.textContent = message;
+    returnToLobbyMessage.classList.add('error');
 }
 
 export function updateLobbyActions(players, currentPlayerId) {
@@ -98,9 +201,10 @@ export function updateLobbyActions(players, currentPlayerId) {
         return;
     }
 
-    const isHost = currentPlayer.playerNumber === 1;
+    const isHost = currentPlayer.isHost === true;
     const canStart = isHost && players.length >= 2;
 
+    leaveLobbyButton.disabled = false;
     startGameButton.classList.toggle('hidden', !isHost);
     startGameButton.disabled = !canStart;
     startGameButton.textContent = canStart ? 'Start game' : 'Waiting for players';
@@ -110,7 +214,7 @@ export function updateLobbyActions(players, currentPlayerId) {
             ? `${players.length} players ready.`
             : 'At least 2 players are required to start.';
     } else {
-        startGameMessage.textContent = 'Waiting for P1 to start the game.';
+        startGameMessage.textContent = 'Waiting for the room host to start the game.';
     }
 
     startGameMessage.classList.remove('error', 'notice');
@@ -139,7 +243,8 @@ function createPlayerItem(player, className) {
     item.style.setProperty('--player-color', player.color);
     color.className = 'player-color';
     name.className = 'player-name';
-    name.textContent = `P${player.playerNumber} · ${player.name}`;
+    name.textContent =
+        `P${player.playerNumber} · ${player.name}${player.isHost ? ' (Host)' : ''}`;
     score.className = 'player-score';
     score.textContent = `${player.score ?? 0} pts`;
 

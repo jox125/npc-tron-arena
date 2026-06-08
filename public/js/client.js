@@ -7,14 +7,19 @@ import {
     showStartError,
     showScreen,
     renderCountdown,
+    renderPaused,
+    renderRoundResult,
+    showPauseMenuError,
+    showReturnToLobbyError,
+    showSystemNotice,
     updateArenaIdentity,
     updateLobbyActions,
     updateLobbyPlayers,
     updateScoreboard
 } from './ui.js';
 import {
-    playCountdownCue,
-    resetCountdownAudio,
+    handleGameAudio,
+    preloadAudio,
     unlockAudio
 } from './audio.js';
 
@@ -30,27 +35,33 @@ const joinForm = document.querySelector('#join-form');
 const playerNameInput = document.querySelector('#player-name');
 const joinButton = document.querySelector('#join-button');
 const startGameButton = document.querySelector('#start-game-button');
+const leaveLobbyButton = document.querySelector('#leave-lobby-button');
+const returnToLobbyButton = document.querySelector('#return-to-lobby-button');
+const resumeGameButton = document.querySelector('#resume-game-button');
+const quitMatchButton = document.querySelector('#quit-match-button');
 let currentPlayerId = null;
 let lobbyPlayers = [];
 let currentGameStatus = 'LOBBY';
+let lastSystemNoticeId = null;
 
 // Starts WASD/Arrow key handling
 startInput(socket);
 
 document.addEventListener('pointerdown', unlockAudio, { once: true });
 document.addEventListener('keydown', unlockAudio, { once: true });
+preloadAudio();
 
 document.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape' || event.repeat) {
         return;
     }
 
-    const canTogglePause =
+    const canPause =
         currentPlayerId &&
-        ['PLAYING', 'PAUSED'].includes(currentGameStatus);
+        currentGameStatus === 'PLAYING';
 
-    if (canTogglePause) {
-        socket.emit('TOGGLE_PAUSE');
+    if (canPause) {
+        socket.emit('PAUSE_GAME');
     }
 });
 
@@ -75,6 +86,26 @@ startGameButton.addEventListener('click', () => {
     socket.emit('START_GAME');
 });
 
+leaveLobbyButton.addEventListener('click', () => {
+    leaveLobbyButton.disabled = true;
+    socket.emit('LEAVE_LOBBY');
+});
+
+returnToLobbyButton.addEventListener('click', () => {
+    returnToLobbyButton.disabled = true;
+    socket.emit('RETURN_TO_LOBBY');
+});
+
+resumeGameButton.addEventListener('click', () => {
+    resumeGameButton.disabled = true;
+    socket.emit('RESUME_GAME');
+});
+
+quitMatchButton.addEventListener('click', () => {
+    quitMatchButton.disabled = true;
+    socket.emit('QUIT_MATCH');
+});
+
 socket.on('JOIN_SUCCESS', ({ playerId }) => {
     currentPlayerId = playerId;
     playerNameInput.disabled = true;
@@ -84,14 +115,50 @@ socket.on('JOIN_SUCCESS', ({ playerId }) => {
     updateLobbyActions(lobbyPlayers, currentPlayerId);
 });
 
-socket.on('JOIN_ERROR', ({ message }) => {
+socket.on('JOIN_ERROR', ({ code, message }) => {
+    if (code === 'MATCH_IN_PROGRESS' || currentGameStatus !== 'LOBBY') {
+        playerNameInput.disabled = true;
+        joinButton.disabled = true;
+        joinButton.textContent = 'Match in progress';
+        showMatchInProgress();
+        return;
+    }
+
     joinButton.disabled = false;
     showJoinMessage(message);
     playerNameInput.select();
 });
 
+socket.on('LEAVE_LOBBY_SUCCESS', () => {
+    currentPlayerId = null;
+    playerNameInput.disabled = false;
+    joinButton.disabled = false;
+    joinButton.textContent = 'Enter lobby';
+    leaveLobbyButton.disabled = false;
+    showJoinMessage('You left the lobby.', 'success');
+    updateLobbyActions(lobbyPlayers, currentPlayerId);
+    playerNameInput.focus();
+});
+
+socket.on('LEAVE_LOBBY_ERROR', ({ message }) => {
+    leaveLobbyButton.disabled = false;
+    showJoinMessage(message);
+});
+
 socket.on('START_ERROR', ({ message }) => {
     showStartError(message);
+});
+
+socket.on('RETURN_TO_LOBBY_ERROR', ({ message }) => {
+    showReturnToLobbyError(message);
+});
+
+socket.on('QUIT_MATCH_ERROR', ({ message }) => {
+    showPauseMenuError(message);
+});
+
+socket.on('QUIT_MATCH_SUCCESS', () => {
+    currentPlayerId = null;
 });
 
 socket.on('HOST_CHANGED', ({ message }) => {
@@ -111,6 +178,11 @@ socket.on('GAME_STATE_UPDATE', gameState => {
     currentGameStatus = gameState.gameStatus;
 
     updateScoreboard(players, currentPlayerId);
+    handleGameAudio(gameState, state.current, currentPlayerId);
+    if (gameState.systemNotice?.id !== lastSystemNoticeId) {
+        lastSystemNoticeId = gameState.systemNotice?.id ?? null;
+        showSystemNotice(gameState.systemNotice);
+    }
 
     if (gameState.gameStatus !== 'LOBBY' && !currentPlayer) {
         playerNameInput.disabled = true;
@@ -132,9 +204,18 @@ socket.on('GAME_STATE_UPDATE', gameState => {
 
     if (gameState.gameStatus === 'COUNTDOWN') {
         renderCountdown(gameState.timer, currentPlayer);
-        playCountdownCue(gameState.timer);
-    } else {
-        resetCountdownAudio();
+    }
+
+    if (gameState.gameStatus === 'PAUSED') {
+        renderPaused(gameState.pausedBy, currentPlayer);
+    }
+
+    if (gameState.gameStatus === 'GAME_OVER') {
+        renderRoundResult(
+            gameState.roundResult,
+            players,
+            currentPlayerId
+        );
     }
 
     updateGameState(gameState);

@@ -38,8 +38,9 @@
 
 ### Teammate 2: UI Integration & Lobby Logic
 
-* Bind the **ESC** key listener globally. When pressed, emit a `TOGGLE_PAUSE` payload to the server.
-* Create full-screen UI overlays for the 3-second pre-round countdown, the "Game Paused by [Player Name]" notice , and the final round results summary.
+* Bind the **ESC** key listener globally. When pressed during gameplay, emit `PAUSE_GAME`; the pause menu emits `RESUME_GAME` and `QUIT_MATCH`.
+* Create full-screen UI overlays for the 3-second pre-round countdown, the "Game Paused by [Player Name]" menu, and the final round results summary.
+* Broadcast pause, resume, and quit notices containing the player who triggered the state change.
 
 
 ### Teammate 3: Responsive Key Binding & Trail Rendering
@@ -65,6 +66,7 @@
 
 * Set up **Howler.js** to handle audio asset loading and pre-loading without bottlenecking the rendering pipeline.
 * Map sound triggers to specific state notifications: play distinct audio cues for round start, player elimination, and match victory.
+* Keep public elimination and victory audio hooks ready for the collision and multi-round state managers.
 
 
 ### Teammate 3: Map Boundary UI & Polish
