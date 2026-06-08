@@ -1,4 +1,5 @@
 import { startLoop } from './renderer.js';
+import { startInput } from './input.js';
 import {
     showJoinMessage,
     showHostChanged,
@@ -32,6 +33,9 @@ const startGameButton = document.querySelector('#start-game-button');
 let currentPlayerId = null;
 let lobbyPlayers = [];
 let currentGameStatus = 'LOBBY';
+
+// Starts WASD/Arrow key handling
+startInput(socket);
 
 document.addEventListener('pointerdown', unlockAudio, { once: true });
 document.addEventListener('keydown', unlockAudio, { once: true });
@@ -137,7 +141,7 @@ socket.on('GAME_STATE_UPDATE', gameState => {
 });
 
 // Start rAF loop
-startLoop();
+startLoop(socket);
 
 
 function updateGameState(gameState) {
