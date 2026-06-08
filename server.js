@@ -11,7 +11,8 @@ import {
     getNextPlayerNumber,
     eliminatePlayer,
     finishRound,
-    resetGameToLobby
+    resetGameToLobby,
+    startNewTrailSegment
 } from './src/gameEngine.js';
 
 const COUNTDOWN_STEP_MS = 750;
@@ -139,6 +140,7 @@ io.on('connection', (socket) => {
                     if (p.playerNumber === 2) { p.x = 400; p.y = 750; p.dx = 0; p.dy = -4; }  // Bottom facing Up
                     if (p.playerNumber === 3) { p.x = 50;  p.y = 400; p.dx = 4; p.dy = 0;  }  // Left facing Right
                     if (p.playerNumber === 4) { p.x = 750; p.y = 400; p.dx = -4; p.dy = 0; }  // Right facing Left
+                    startNewTrailSegment(p);
                 });
             }
             io.emit('GAME_STATE_UPDATE', gameState);
@@ -221,11 +223,18 @@ io.on('connection', (socket) => {
         const player = gameState.players[socket.id];
         if (!player || !player.isAlive || gameState.gameStatus !== "PLAYING") return;
 
+        let turned = false;
+
         switch (data.turn) {
-            case 'UP':    if (player.dy === 0) { player.dx = 0; player.dy = -4; } break;
-            case 'DOWN':  if (player.dy === 0) { player.dx = 0; player.dy = 4; }  break;
-            case 'LEFT':  if (player.dx === 0) { player.dx = -4; player.dy = 0; } break;
-            case 'RIGHT': if (player.dx === 0) { player.dx = 4; player.dy = 0; }  break;
+            case 'UP':    if (player.dy === 0) { player.dx = 0; player.dy = -4; turned = true; } break;
+            case 'DOWN':  if (player.dy === 0) { player.dx = 0; player.dy = 4; turned = true; }  break;
+            case 'LEFT':  if (player.dx === 0) { player.dx = -4; player.dy = 0; turned = true; } break;
+            case 'RIGHT': if (player.dx === 0) { player.dx = 4; player.dy = 0; turned = true; }  break;
+        }
+
+        // If a valid 90-degree turn happened, spawn a new trail line segment
+        if (turned) {
+            startNewTrailSegment(player);
         }
     });
 
