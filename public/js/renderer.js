@@ -37,7 +37,7 @@ function gameLoop(now) {
     // Normalized time factor (0-1)
     const t = Math.min((now - state.lastUpdate) / SERVER_TICK_MS, 1);
     renderPlayers(prev, curr, t);
-    renderTrails(curr.trails);
+    renderTrails(prev, curr, t);
 }
 
 function startLoop() {
@@ -69,8 +69,11 @@ function renderPlayers(prev, curr, t) {
     }
 }
 
-function renderTrails(trails) {
-    for(const seg of trails) {
+function renderTrails(prev, curr, t) {
+    const currTrails = curr.trails;
+    const prevTrails = new Map(prev.trails.map(s => [s.id, s]));
+
+    for(const seg of currTrails) {
         let el = trailElements[seg.id];
 
         // Spawn new div if this is a new trail ID
@@ -85,12 +88,20 @@ function renderTrails(trails) {
             arena.appendChild(el);
             trailElements[seg.id] = el;
         }
+
+        // Interpolate trail position
+        const p = prevTrails.get(seg.id) || seg;
+
+        const x1 = lerp(p.x1, seg.x1, t);
+        const y1 = lerp(p.y1, seg.y1, t);
+        const x2 = lerp(p.x2, seg.x2, t);
+        const y2 = lerp(p.y2, seg.y2, t);
         
         // Update trail position
-        const x = Math.min(seg.x1, seg.x2) - TRAIL_OFFSET;
-        const y = Math.min(seg.y1, seg.y2) - TRAIL_OFFSET;
-        const w = Math.abs(seg.x2 - seg.x1) + TRAIL_THICKNESS;
-        const h = Math.abs(seg.y2 - seg.y1) + TRAIL_THICKNESS;
+        const x = Math.min(x1, x2) - TRAIL_OFFSET;
+        const y = Math.min(y1, y2) - TRAIL_OFFSET;
+        const w = Math.abs(x2 - x1) + TRAIL_THICKNESS;
+        const h = Math.abs(y2 - y1) + TRAIL_THICKNESS;
 
         el.style.transform = `translate3d(${x}px, ${y}px, 0)`;
         el.style.width  = w + "px";
