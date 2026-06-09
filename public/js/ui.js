@@ -40,6 +40,11 @@ export function showScreen(gameStatus) {
     lobbyScreen.classList.toggle('hidden', gameStatus !== 'LOBBY');
     gameScreen.classList.toggle('hidden', gameStatus === 'LOBBY');
 
+    if (gameStatus !== 'GAME_OVER') {
+        winnerCelebration.classList.remove('is-active');
+        roundResultContent.classList.remove('is-personal-win');
+    }
+
     const showOverlay = ['COUNTDOWN', 'PAUSED', 'GAME_OVER']
         .includes(gameStatus);
 

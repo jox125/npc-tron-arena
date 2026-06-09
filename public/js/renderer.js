@@ -28,7 +28,7 @@ function gameLoop(now) {
             cleanupTrails();
         }
         if(Object.keys(playerElements).length > 0) {
-            cleanupPlayers(curr.players);
+            cleanupAllPlayers();
         }
 
         return;
@@ -49,6 +49,7 @@ function startLoop() {
 function renderPlayers(prev, curr, t) {
     const prevPlayers = prev.players || {};
     const currPlayers = curr.players || {};
+    const canInterpolate = prev.gameStatus === 'PLAYING';
 
     cleanupPlayers(currPlayers);
 
@@ -56,11 +57,11 @@ function renderPlayers(prev, curr, t) {
         const prevPlayer = prevPlayers[id];
         
         // Interpolate player position
-        const x = (prevPlayer && !player.teleported)
+        const x = (canInterpolate && prevPlayer && !player.teleported)
             ? lerp(prevPlayer.x, player.x, t) - PLAYER_OFFSET
             : player.x - PLAYER_OFFSET;
 
-        const y = (prevPlayer && !player.teleported)
+        const y = (canInterpolate && prevPlayer && !player.teleported)
             ? lerp(prevPlayer.y, player.y, t) - PLAYER_OFFSET
             : player.y - PLAYER_OFFSET;
 
@@ -146,6 +147,12 @@ function cleanupPlayers(currentPlayers) {
         if(!currentPlayers[id]) {
             removePlayerDiv(id);
         }
+    }
+}
+
+function cleanupAllPlayers() {
+    for(const id in playerElements) {
+        removePlayerDiv(id);
     }
 }
 
