@@ -15,6 +15,8 @@ import {
     updateArenaIdentity,
     updateLobbyActions,
     updateLobbyPlayers,
+    updateMatchSettings,
+    updateRoundStatus,
     updateScoreboard
 } from './ui.js';
 import {
@@ -36,12 +38,15 @@ const playerNameInput = document.querySelector('#player-name');
 const joinButton = document.querySelector('#join-button');
 const startGameButton = document.querySelector('#start-game-button');
 const leaveLobbyButton = document.querySelector('#leave-lobby-button');
+const winsRequiredSelect = document.querySelector('#wins-required');
+const nextRoundButton = document.querySelector('#next-round-button');
 const returnToLobbyButton = document.querySelector('#return-to-lobby-button');
 const resumeGameButton = document.querySelector('#resume-game-button');
 const quitMatchButton = document.querySelector('#quit-match-button');
 let currentPlayerId = null;
 let lobbyPlayers = [];
 let currentGameStatus = 'LOBBY';
+let currentWinsRequired = 3;
 let lastSystemNoticeId = null;
 
 // Starts WASD/Arrow key handling
@@ -86,9 +91,20 @@ startGameButton.addEventListener('click', () => {
     socket.emit('START_GAME');
 });
 
+winsRequiredSelect.addEventListener('change', () => {
+    socket.emit('UPDATE_MATCH_SETTINGS', {
+        winsRequired: Number(winsRequiredSelect.value)
+    });
+});
+
 leaveLobbyButton.addEventListener('click', () => {
     leaveLobbyButton.disabled = true;
     socket.emit('LEAVE_LOBBY');
+});
+
+nextRoundButton.addEventListener('click', () => {
+    nextRoundButton.disabled = true;
+    socket.emit('START_NEXT_ROUND');
 });
 
 returnToLobbyButton.addEventListener('click', () => {
@@ -149,6 +165,14 @@ socket.on('START_ERROR', ({ message }) => {
     showStartError(message);
 });
 
+socket.on('MATCH_SETTINGS_ERROR', ({ message }) => {
+    showStartError(message);
+});
+
+socket.on('ROUND_ACTION_ERROR', ({ message }) => {
+    showReturnToLobbyError(message);
+});
+
 socket.on('RETURN_TO_LOBBY_ERROR', ({ message }) => {
     showReturnToLobbyError(message);
 });
@@ -167,8 +191,10 @@ socket.on('HOST_CHANGED', ({ message }) => {
 
 socket.on('ROOM_STATE_UPDATE', players => {
     lobbyPlayers = players;
+    const currentPlayer = players.find(player => player.id === currentPlayerId);
     updateLobbyPlayers(players);
     updateLobbyActions(players, currentPlayerId);
+    updateMatchSettings(currentPlayer, currentWinsRequired);
     updateScoreboard(players, currentPlayerId);
 });
 
@@ -176,7 +202,10 @@ socket.on('GAME_STATE_UPDATE', gameState => {
     const players = Object.values(gameState.players);
     const currentPlayer = players.find(player => player.id === currentPlayerId);
     currentGameStatus = gameState.gameStatus;
+    currentWinsRequired = gameState.winsRequired;
 
+    updateMatchSettings(currentPlayer, gameState.winsRequired);
+    updateRoundStatus(gameState);
     updateScoreboard(players, currentPlayerId);
     handleGameAudio(gameState, state.current, currentPlayerId);
     if (gameState.systemNotice?.id !== lastSystemNoticeId) {
@@ -212,7 +241,7 @@ socket.on('GAME_STATE_UPDATE', gameState => {
 
     if (gameState.gameStatus === 'GAME_OVER') {
         renderRoundResult(
-            gameState.roundResult,
+            gameState,
             players,
             currentPlayerId
         );

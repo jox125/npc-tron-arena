@@ -1,6 +1,7 @@
 const lobbyScreen = document.querySelector('#lobby-screen');
 const gameScreen = document.querySelector('#game-screen');
 const overlay = document.querySelector('#overlay');
+const winnerCelebration = document.querySelector('#winner-celebration');
 const arena = document.querySelector('#arena');
 const scoreboard = document.querySelector('#scoreboard');
 const playerIdentityNumber = document.querySelector('#player-identity-number');
@@ -19,6 +20,7 @@ const roundResultLabel = document.querySelector('#round-result-label');
 const roundResultTitle = document.querySelector('#round-result-title');
 const roundWinner = document.querySelector('#round-winner');
 const roundRankings = document.querySelector('#round-rankings');
+const nextRoundButton = document.querySelector('#next-round-button');
 const returnToLobbyButton = document.querySelector('#return-to-lobby-button');
 const returnToLobbyMessage = document.querySelector('#return-to-lobby-message');
 const lobbyPlayerList = document.querySelector('#lobby-player-list');
@@ -29,12 +31,19 @@ const lobbyActions = document.querySelector('#lobby-actions');
 const startGameButton = document.querySelector('#start-game-button');
 const leaveLobbyButton = document.querySelector('#leave-lobby-button');
 const startGameMessage = document.querySelector('#start-game-message');
+const winsRequiredSelect = document.querySelector('#wins-required');
+const roundStatus = document.querySelector('#round-status');
 const systemNotice = document.querySelector('#system-notice');
 let systemNoticeTimeout = null;
 
 export function showScreen(gameStatus) {
     lobbyScreen.classList.toggle('hidden', gameStatus !== 'LOBBY');
     gameScreen.classList.toggle('hidden', gameStatus === 'LOBBY');
+
+    if (gameStatus !== 'GAME_OVER') {
+        winnerCelebration.classList.remove('is-active');
+        roundResultContent.classList.remove('is-personal-win');
+    }
 
     const showOverlay = ['COUNTDOWN', 'PAUSED', 'GAME_OVER']
         .includes(gameStatus);
@@ -140,23 +149,47 @@ export function showSystemNotice(notice) {
     }, 3200);
 }
 
-export function renderRoundResult(roundResult, players, currentPlayerId) {
+export function renderRoundResult(gameState, players, currentPlayerId) {
+    const roundResult = gameState.roundResult;
     const rankings = roundResult?.rankings ?? [];
     const winner = players.find(player => player.id === roundResult?.winnerId)
         ?? rankings.find(player => player.id === roundResult?.winnerId);
+    const matchWinner = players.find(player => player.id === gameState.matchWinnerId)
+        ?? rankings.find(player => player.id === gameState.matchWinnerId);
     const currentPlayer = players.find(player => player.id === currentPlayerId)
         ?? rankings.find(player => player.id === currentPlayerId);
+    const isMatchOver = roundResult?.isMatchOver === true;
+    const isPersonalWin = isMatchOver && gameState.matchWinnerId === currentPlayerId;
 
-    roundResultLabel.textContent = 'Round complete';
-    roundResultTitle.textContent = winner
-        ? `${winner.name} wins`
-        : roundResult ? 'Round draw' : 'Round results';
-    roundWinner.textContent = winner
-        ? `P${winner.playerNumber} secured the grid`
-        : roundResult ? 'No light cycle survived' : 'Waiting for the final standings';
+    roundResultContent.classList.toggle('is-personal-win', isPersonalWin);
+    winnerCelebration.classList.remove('is-active');
+    if (isPersonalWin) {
+        // Force a reflow so the celebration restarts for a later match win.
+        void winnerCelebration.offsetWidth;
+        winnerCelebration.classList.add('is-active');
+    }
 
-    if (winner?.color) {
-        overlay.style.setProperty('--overlay-color', winner.color);
+    roundResultLabel.textContent = isMatchOver
+        ? isPersonalWin
+            ? `Victory // ${gameState.roundNumber} rounds`
+            : `Match complete // ${gameState.roundNumber} rounds`
+        : `Round ${gameState.roundNumber} complete`;
+    roundResultTitle.textContent = isPersonalWin
+        ? 'You win'
+        : matchWinner
+        ? `${matchWinner.name} wins the match`
+        : winner
+            ? `${winner.name} wins the round`
+            : roundResult ? 'Round draw' : 'Round results';
+    roundWinner.textContent = matchWinner
+        ? `P${matchWinner.playerNumber} reached ${gameState.winsRequired} wins`
+        : winner
+            ? `P${winner.playerNumber} secured the grid`
+            : roundResult ? 'No light cycle survived' : 'Waiting for the final standings';
+
+    const accentPlayer = matchWinner ?? winner;
+    if (accentPlayer?.color) {
+        overlay.style.setProperty('--overlay-color', accentPlayer.color);
     }
 
     roundRankings.replaceChildren();
@@ -165,6 +198,7 @@ export function renderRoundResult(roundResult, players, currentPlayerId) {
         const item = document.createElement('li');
         const placement = document.createElement('span');
         const identity = document.createElement('span');
+        const score = document.createElement('span');
 
         item.className = 'result-rankings__item';
         item.style.setProperty('--player-color', player.color);
@@ -172,24 +206,50 @@ export function renderRoundResult(roundResult, players, currentPlayerId) {
         placement.textContent = String(player.placement);
         identity.className = 'result-rankings__identity';
         identity.textContent = `P${player.playerNumber} // ${player.name}`;
+        score.className = 'result-rankings__score';
+        score.textContent = `${player.score ?? 0} wins`;
 
-        item.append(placement, identity);
+        item.append(placement, identity, score);
         roundRankings.append(item);
     });
 
     const isHost = currentPlayer?.isHost === true;
-    returnToLobbyButton.classList.toggle('hidden', !isHost);
+    const canStartNextRound = !isMatchOver && players.length >= 2;
+    nextRoundButton.classList.toggle('hidden', !isHost || !canStartNextRound);
+    returnToLobbyButton.classList.toggle('hidden', !isHost || canStartNextRound);
+    nextRoundButton.disabled = false;
     returnToLobbyButton.disabled = false;
     returnToLobbyMessage.classList.remove('error');
-    returnToLobbyMessage.textContent = isHost
-        ? 'Open the lobby when everyone has reviewed the result.'
-        : 'Waiting for the room host to return everyone to the lobby.';
+    if (isHost) {
+        returnToLobbyMessage.textContent = canStartNextRound
+            ? 'Start the next round when everyone is ready.'
+            : isMatchOver
+            ? 'Return everyone to the lobby when the results are reviewed.'
+            : 'Not enough players remain. Return to the lobby to continue.';
+    } else {
+        returnToLobbyMessage.textContent = canStartNextRound
+            ? 'Waiting for the room host to start the next round.'
+            : isMatchOver
+            ? 'Waiting for the room host to return everyone to the lobby.'
+            : 'Not enough players remain. Waiting for the room host.';
+    }
 }
 
 export function showReturnToLobbyError(message) {
+    nextRoundButton.disabled = false;
     returnToLobbyButton.disabled = false;
     returnToLobbyMessage.textContent = message;
     returnToLobbyMessage.classList.add('error');
+}
+
+export function updateMatchSettings(currentPlayer, winsRequired) {
+    winsRequiredSelect.value = String(winsRequired);
+    winsRequiredSelect.disabled = currentPlayer?.isHost !== true;
+}
+
+export function updateRoundStatus(gameState) {
+    roundStatus.textContent =
+        `Round ${gameState.roundNumber} // First to ${gameState.winsRequired} wins`;
 }
 
 export function updateLobbyActions(players, currentPlayerId) {
@@ -246,7 +306,7 @@ function createPlayerItem(player, className) {
     name.textContent =
         `P${player.playerNumber} · ${player.name}${player.isHost ? ' (Host)' : ''}`;
     score.className = 'player-score';
-    score.textContent = `${player.score ?? 0} pts`;
+    score.textContent = `${player.score ?? 0} wins`;
 
     item.append(color, name, score);
     return item;

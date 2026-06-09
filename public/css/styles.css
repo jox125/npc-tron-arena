@@ -310,6 +310,36 @@ input {
     margin: 24px 0;
 }
 
+.match-settings {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 72px;
+    align-items: center;
+    gap: 12px;
+    border: 1px solid var(--panel-border);
+    padding: 10px 12px;
+    background: rgba(0, 217, 255, 0.045);
+}
+
+.match-settings label {
+    color: var(--cyan-light);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.match-settings select {
+    border: 1px solid var(--cyan);
+    border-radius: 0;
+    padding: 8px;
+    color: var(--text);
+    background: #030a12;
+}
+
+.match-settings select:disabled {
+    opacity: 0.55;
+}
+
 .lobby-actions__message {
     min-height: 20px;
     margin: 0;
@@ -364,6 +394,14 @@ input {
     border: 1px solid var(--panel-border);
     background: var(--panel);
     max-height: 800px;
+}
+
+.round-status {
+    margin: 8px 0 0;
+    color: var(--muted);
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
 }
 
 .player-identity {
@@ -458,6 +496,66 @@ input {
     content: "";
     animation: overlay-scan 2.2s linear infinite;
     pointer-events: none;
+}
+
+.winner-celebration {
+    position: absolute;
+    z-index: 0;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.firework {
+    --firework-color: var(--overlay-color);
+
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    opacity: 0;
+    background: var(--firework-color);
+    box-shadow:
+        0 -76px 0 -1px var(--firework-color),
+        54px -54px 0 -1px var(--firework-color),
+        76px 0 0 -1px var(--firework-color),
+        54px 54px 0 -1px var(--firework-color),
+        0 76px 0 -1px var(--firework-color),
+        -54px 54px 0 -1px var(--firework-color),
+        -76px 0 0 -1px var(--firework-color),
+        -54px -54px 0 -1px var(--firework-color);
+    filter: drop-shadow(0 0 8px var(--firework-color));
+}
+
+.firework--one {
+    top: 24%;
+    left: 20%;
+}
+
+.firework--two {
+    --firework-color: #ffb000;
+
+    top: 18%;
+    right: 18%;
+}
+
+.firework--three {
+    --firework-color: #ffffff;
+
+    right: 26%;
+    bottom: 20%;
+}
+
+.winner-celebration.is-active .firework {
+    animation: firework-burst 900ms ease-out both;
+}
+
+.winner-celebration.is-active .firework--two {
+    animation-delay: 320ms;
+}
+
+.winner-celebration.is-active .firework--three {
+    animation-delay: 720ms;
 }
 
 .countdown {
@@ -602,6 +700,18 @@ input {
     clip-path: polygon(0 0, calc(100% - 28px) 0, 100% 28px, 100% 100%, 28px 100%, 0 calc(100% - 28px));
 }
 
+.result-view.is-personal-win {
+    animation: winner-panel-flash 1.8s ease-out both;
+}
+
+.result-view.is-personal-win h2 {
+    color: var(--overlay-color);
+    text-shadow:
+        0 0 12px var(--overlay-color),
+        0 0 38px var(--overlay-color),
+        0 0 82px color-mix(in srgb, var(--overlay-color) 65%, transparent);
+}
+
 .overlay-panel__eyebrow {
     margin: 0 0 12px;
     color: var(--overlay-color);
@@ -679,7 +789,7 @@ input {
 
 .result-rankings__item {
     display: grid;
-    grid-template-columns: 44px minmax(0, 1fr);
+    grid-template-columns: 44px minmax(0, 1fr) auto;
     align-items: center;
     gap: 14px;
     border-left: 3px solid var(--player-color);
@@ -699,6 +809,13 @@ input {
     overflow: hidden;
     font-weight: 750;
     text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.result-rankings__score {
+    color: var(--player-color);
+    font-size: 0.82rem;
+    font-variant-numeric: tabular-nums;
     white-space: nowrap;
 }
 
@@ -814,10 +931,51 @@ input {
     }
 }
 
+@keyframes firework-burst {
+    0% {
+        opacity: 0;
+        transform: scale(0.05);
+    }
+
+    18% {
+        opacity: 1;
+    }
+
+    72% {
+        opacity: 0.95;
+    }
+
+    100% {
+        opacity: 0;
+        transform: scale(1.8);
+    }
+}
+
+@keyframes winner-panel-flash {
+    0% {
+        opacity: 0;
+        filter: brightness(2.4);
+        transform: scale(0.9);
+    }
+
+    22% {
+        opacity: 1;
+        filter: brightness(1.7);
+        transform: scale(1.035);
+    }
+
+    100% {
+        filter: brightness(1);
+        transform: scale(1);
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .overlay::before,
     .countdown__number.is-ticking,
-    .countdown-cycle.is-riding {
+    .countdown-cycle.is-riding,
+    .winner-celebration.is-active .firework,
+    .result-view.is-personal-win {
         animation-duration: 1ms;
         animation-iteration-count: 1;
     }
@@ -837,6 +995,6 @@ input {
     }
 
     .result-rankings__item {
-        grid-template-columns: 36px minmax(0, 1fr);
+        grid-template-columns: 36px minmax(0, 1fr) auto;
     }
 }
