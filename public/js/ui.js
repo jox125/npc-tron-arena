@@ -1,6 +1,7 @@
 const lobbyScreen = document.querySelector('#lobby-screen');
 const gameScreen = document.querySelector('#game-screen');
 const overlay = document.querySelector('#overlay');
+const winnerCelebration = document.querySelector('#winner-celebration');
 const arena = document.querySelector('#arena');
 const scoreboard = document.querySelector('#scoreboard');
 const playerIdentityNumber = document.querySelector('#player-identity-number');
@@ -153,11 +154,24 @@ export function renderRoundResult(gameState, players, currentPlayerId) {
     const currentPlayer = players.find(player => player.id === currentPlayerId)
         ?? rankings.find(player => player.id === currentPlayerId);
     const isMatchOver = roundResult?.isMatchOver === true;
+    const isPersonalWin = isMatchOver && gameState.matchWinnerId === currentPlayerId;
+
+    roundResultContent.classList.toggle('is-personal-win', isPersonalWin);
+    winnerCelebration.classList.remove('is-active');
+    if (isPersonalWin) {
+        // Force a reflow so the celebration restarts for a later match win.
+        void winnerCelebration.offsetWidth;
+        winnerCelebration.classList.add('is-active');
+    }
 
     roundResultLabel.textContent = isMatchOver
-        ? `Match complete // ${gameState.roundNumber} rounds`
+        ? isPersonalWin
+            ? `Victory // ${gameState.roundNumber} rounds`
+            : `Match complete // ${gameState.roundNumber} rounds`
         : `Round ${gameState.roundNumber} complete`;
-    roundResultTitle.textContent = matchWinner
+    roundResultTitle.textContent = isPersonalWin
+        ? 'You win'
+        : matchWinner
         ? `${matchWinner.name} wins the match`
         : winner
             ? `${winner.name} wins the round`
