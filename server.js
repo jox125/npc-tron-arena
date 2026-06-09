@@ -11,6 +11,7 @@ import {
     getNextPlayerNumber,
     eliminatePlayer,
     finishRound,
+    prepareNextRound,
     resetGameToLobby,
     startNewTrailSegment
 } from './src/gameEngine.js';
@@ -93,7 +94,28 @@ io.on('connection', (socket) => {
         io.emit('GAME_STATE_UPDATE', gameState);
     });
 
-    // 2. Handle the Host starting the game
+    socket.on('UPDATE_MATCH_SETTINGS', ({ winsRequired } = {}) => {
+        const player = gameState.players[socket.id];
+        if (!player?.isHost || gameState.gameStatus !== "LOBBY") {
+            socket.emit('MATCH_SETTINGS_ERROR', {
+                message: 'Only the room host can change lobby settings.'
+            });
+            return;
+        }
+
+        const requestedWins = Number(winsRequired);
+        if (!Number.isInteger(requestedWins) || requestedWins < 1 || requestedWins > 5) {
+            socket.emit('MATCH_SETTINGS_ERROR', {
+                message: 'Required round wins must be between 1 and 5.'
+            });
+            return;
+        }
+
+        gameState.winsRequired = requestedWins;
+        io.emit('GAME_STATE_UPDATE', gameState);
+    });
+
+    // 2. Handle the host starting the match
     socket.on('START_GAME', () => {
         const player = gameState.players[socket.id];
         // Only the current room host can trigger start.
@@ -112,39 +134,12 @@ io.on('connection', (socket) => {
             return;
         }
 
-        // Advance state to countdown
-        gameState.gameStatus = "COUNTDOWN";
-        gameState.timer = 3;
-        gameState.pausedBy = null;
-        gameState.roundResult = null;
-        gameState.eliminationOrder = [];
-        gameState.eliminatedPlayers = {};
-        gameState.trails = [];
+        gameState.roundNumber = 1;
+        gameState.matchWinnerId = null;
         Object.values(gameState.players).forEach(p => {
-            p.isAlive = true;
-            delete p.eliminatedAt;
+            p.score = 0;
         });
-        io.emit('GAME_STATE_UPDATE', gameState);
-
-        // Four 750 ms phases: 3, 2, 1, then the cycle launch animation.
-        countdownInterval = setInterval(() => {
-            gameState.timer--;
-            if (gameState.timer < 0) {
-                clearInterval(countdownInterval);
-                countdownInterval = null;
-                gameState.gameStatus = "PLAYING";
-
-                // Position players symmetrically at their starting edges facing the center
-                Object.values(gameState.players).forEach(p => {
-                    if (p.playerNumber === 1) { p.x = 400; p.y = 50;  p.dx = 0; p.dy = 4;  }  // Top facing Down
-                    if (p.playerNumber === 2) { p.x = 400; p.y = 750; p.dx = 0; p.dy = -4; }  // Bottom facing Up
-                    if (p.playerNumber === 3) { p.x = 50;  p.y = 400; p.dx = 4; p.dy = 0;  }  // Left facing Right
-                    if (p.playerNumber === 4) { p.x = 750; p.y = 400; p.dx = -4; p.dy = 0; }  // Right facing Left
-                    startNewTrailSegment(p);
-                });
-            }
-            io.emit('GAME_STATE_UPDATE', gameState);
-        }, COUNTDOWN_STEP_MS);
+        startRoundCountdown();
     });
 
     // 3. Open the universal game menu with ESC.
@@ -196,7 +191,40 @@ io.on('connection', (socket) => {
         io.emit('GAME_STATE_UPDATE', gameState);
     });
 
-    // 4. Return all connected players to the lobby after the round results.
+    socket.on('START_NEXT_ROUND', () => {
+        const player = gameState.players[socket.id];
+        if (!player?.isHost) {
+            socket.emit('ROUND_ACTION_ERROR', {
+                message: 'Only the room host can start the next round.'
+            });
+            return;
+        }
+
+        if (gameState.gameStatus !== "GAME_OVER" || gameState.matchWinnerId) {
+            socket.emit('ROUND_ACTION_ERROR', {
+                message: 'The next round cannot be started now.'
+            });
+            return;
+        }
+
+        if (Object.keys(gameState.players).length < 2) {
+            socket.emit('ROUND_ACTION_ERROR', {
+                message: 'At least 2 players are required for the next round.'
+            });
+            return;
+        }
+
+        if (!prepareNextRound()) {
+            socket.emit('ROUND_ACTION_ERROR', {
+                message: 'The next round could not be prepared.'
+            });
+            return;
+        }
+
+        startRoundCountdown();
+    });
+
+    // 4. Return all connected players to the lobby after the match results.
     socket.on('RETURN_TO_LOBBY', () => {
         const player = gameState.players[socket.id];
         if (!player || !player.isHost) {
@@ -294,6 +322,51 @@ function resolveRoundEnd() {
     if (alivePlayers.length > 1) return false;
 
     return finishRound(alivePlayers[0]?.id ?? null, gameState.eliminationOrder);
+}
+
+function startRoundCountdown() {
+    if (countdownInterval) {
+        clearInterval(countdownInterval);
+    }
+
+    gameState.gameStatus = "COUNTDOWN";
+    gameState.timer = 3;
+    gameState.pausedBy = null;
+    gameState.roundResult = null;
+    gameState.eliminationOrder = [];
+    gameState.eliminatedPlayers = {};
+    gameState.trails = [];
+    Object.values(gameState.players).forEach(player => {
+        player.isAlive = true;
+        player.dx = 0;
+        player.dy = 0;
+        delete player.currentTrailId;
+        delete player.eliminatedAt;
+    });
+    io.emit('GAME_STATE_UPDATE', gameState);
+
+    // Four phases: 3, 2, 1, then the cycle launch animation.
+    countdownInterval = setInterval(() => {
+        gameState.timer--;
+        if (gameState.timer < 0) {
+            clearInterval(countdownInterval);
+            countdownInterval = null;
+            gameState.gameStatus = "PLAYING";
+
+            Object.values(gameState.players).forEach(player => {
+                setPlayerStartPosition(player);
+                startNewTrailSegment(player);
+            });
+        }
+        io.emit('GAME_STATE_UPDATE', gameState);
+    }, COUNTDOWN_STEP_MS);
+}
+
+function setPlayerStartPosition(player) {
+    if (player.playerNumber === 1) { player.x = 400; player.y = 50;  player.dx = 0; player.dy = 4; }
+    if (player.playerNumber === 2) { player.x = 400; player.y = 750; player.dx = 0; player.dy = -4; }
+    if (player.playerNumber === 3) { player.x = 50;  player.y = 400; player.dx = 4; player.dy = 0; }
+    if (player.playerNumber === 4) { player.x = 750; player.y = 400; player.dx = -4; player.dy = 0; }
 }
 
 function removePlayerFromMatch(playerId) {

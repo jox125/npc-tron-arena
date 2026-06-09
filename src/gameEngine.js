@@ -9,6 +9,9 @@ export let gameState = {
     timer: 0,
     pausedBy: null,
     systemNotice: null,
+    roundNumber: 1,
+    winsRequired: 3,
+    matchWinnerId: null,
     roundResult: null,
     eliminationOrder: [],
     eliminatedPlayers: {},
@@ -104,6 +107,13 @@ export function finishRound(winnerId, eliminationOrder = []) {
     const winner = winnerId ? gameState.players[winnerId] : null;
     if (winnerId && !winner) return false;
 
+    if (winner) {
+        winner.score = (winner.score ?? 0) + 1;
+        if (winner.score >= gameState.winsRequired) {
+            gameState.matchWinnerId = winner.id;
+        }
+    }
+
     const getPlayer = id =>
         gameState.players[id] ?? gameState.eliminatedPlayers[id];
     const validEliminatedIds = [...new Set(eliminationOrder)]
@@ -116,6 +126,9 @@ export function finishRound(winnerId, eliminationOrder = []) {
 
     gameState.roundResult = {
         winnerId,
+        roundNumber: gameState.roundNumber,
+        winsRequired: gameState.winsRequired,
+        isMatchOver: gameState.matchWinnerId !== null,
         rankings: [...rankedIds, ...unrankedIds].map((id, index) => {
             const player = getPlayer(id);
 
@@ -134,8 +147,13 @@ export function finishRound(winnerId, eliminationOrder = []) {
     return true;
 }
 
-export function resetGameToLobby() {
-    gameState.gameStatus = "LOBBY";
+export function prepareNextRound() {
+    if (gameState.gameStatus !== "GAME_OVER" || gameState.matchWinnerId) {
+        return false;
+    }
+
+    // Clear round-only state while preserving each player's match score.
+    gameState.roundNumber++;
     gameState.timer = 0;
     gameState.pausedBy = null;
     gameState.systemNotice = null;
@@ -150,7 +168,33 @@ export function resetGameToLobby() {
         player.dx = 0;
         player.dy = 0;
         player.isAlive = true;
+        delete player.currentTrailId;
+        delete player.eliminatedAt;
+    });
+
+    return true;
+}
+
+export function resetGameToLobby() {
+    gameState.gameStatus = "LOBBY";
+    gameState.timer = 0;
+    gameState.pausedBy = null;
+    gameState.systemNotice = null;
+    gameState.roundResult = null;
+    gameState.roundNumber = 1;
+    gameState.matchWinnerId = null;
+    gameState.eliminationOrder = [];
+    gameState.eliminatedPlayers = {};
+    gameState.trails = [];
+
+    Object.values(gameState.players).forEach(player => {
+        player.x = ARENA_WIDTH / 2;
+        player.y = ARENA_HEIGHT / 2;
+        player.dx = 0;
+        player.dy = 0;
+        player.isAlive = true;
         player.score = 0;
+        delete player.currentTrailId;
         delete player.eliminatedAt;
     });
 }
