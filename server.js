@@ -365,7 +365,7 @@ function startRoundCountdown() {
             if (powerUpInterval) clearInterval(powerUpInterval);
             powerUpInterval = setInterval(() => {
                 if (gameState.gameStatus === "PLAYING") {
-                    spawnRandomPowerUp();
+                    spawnRandomPowerUp(gameState);
                 } else {
                     clearInterval(powerUpInterval);
                 }
