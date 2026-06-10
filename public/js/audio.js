@@ -1,42 +1,21 @@
 const SAMPLE_RATE = 16000;
 
 export const AUDIO_CUES = Object.freeze({
-    countdown: createToneWav({
-        duration: 0.16,
-        startFrequency: 620,
-        endFrequency: 620,
-        waveform: 'sine'
-    }),
-    countdownFinal: createToneWav({
-        duration: 0.3,
-        startFrequency: 880,
-        endFrequency: 880,
-        waveform: 'triangle'
-    }),
-    roundStart: createToneWav({
-        duration: 0.7,
-        startFrequency: 90,
-        endFrequency: 360,
-        waveform: 'sawtooth'
-    }),
-    elimination: createToneWav({
-        duration: 0.45,
-        startFrequency: 420,
-        endFrequency: 70,
-        waveform: 'square'
-    }),
-    victory: createToneWav({
-        duration: 1.1,
-        startFrequency: 440,
-        endFrequency: 880,
-        waveform: 'triangle'
-    }),
-    defeat: createToneWav({
-        duration: 0.8,
-        startFrequency: 250,
-        endFrequency: 90,
-        waveform: 'sawtooth'
-    })
+    countdown: '/audio/beep.mp3',
+    countdownFinal: '/audio/beep_high.mp3',
+    roundStart: '/audio/electric.mp3',
+    elimination: '/audio/elimination.mp3',
+    victory: '/audio/victory.mp3',
+    defeat: '/audio/defeat.mp3',
+    powerup_appears: '/audio/powerup_appears.mp3',
+    powerup_ghost_activate: 'powerup_ghost_activate.mp3',
+    powerup_ghost_deactivate: 'powerup_ghost_deactivate.mp3',
+    powerup_freeze_activate: 'powerup_freeze_activate.mp3',
+    powerup_freeze_deactivate: 'powerup_freeze_deactivate.mp3',
+    powerup_trail_eraser_activate: 'powerup_trail_eraser_activate.mp3',
+    powerup_trail_eraser_deactivate: 'powerup_trail_eraser_deactivate.mp3',
+    powerup_trail_breaker_activate: 'powerup_trail_breaker_activate.mp3',
+    powerup_trail_breaker_deactivate: 'powerup_trail_breaker_deactivate.mp3'
 });
 
 const sounds = createSoundRegistry();
