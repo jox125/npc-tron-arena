@@ -34,6 +34,7 @@ const startGameMessage = document.querySelector('#start-game-message');
 const winsRequiredSelect = document.querySelector('#wins-required');
 const roundStatus = document.querySelector('#round-status');
 const systemNotice = document.querySelector('#system-notice');
+const playerNodes = new Map();
 let systemNoticeTimeout = null;
 
 export function showScreen(gameStatus) {
@@ -214,7 +215,7 @@ export function renderRoundResult(gameState, players, currentPlayerId) {
     });
 
     const isHost = currentPlayer?.isHost === true;
-    const canStartNextRound = !isMatchOver && players.length >= 2;
+    const canStartNextRound = !isMatchOver && players.length >= 1;
     nextRoundButton.classList.toggle('hidden', !isHost || !canStartNextRound);
     returnToLobbyButton.classList.toggle('hidden', !isHost || canStartNextRound);
     nextRoundButton.disabled = false;
@@ -262,7 +263,7 @@ export function updateLobbyActions(players, currentPlayerId) {
     }
 
     const isHost = currentPlayer.isHost === true;
-    const canStart = isHost && players.length >= 2;
+    const canStart = isHost && players.length >= 1;
 
     leaveLobbyButton.disabled = false;
     startGameButton.classList.toggle('hidden', !isHost);
@@ -330,15 +331,26 @@ export function updateLobbyPlayers(players) {
 }
 
 export function updateScoreboard(players, currentPlayerId) {
-    scoreboardList.replaceChildren();
+    const activePlayers = new Set();
 
-    players.forEach((player) => {
-        const item = createPlayerItem(player, 'scoreboard-player');
+    for(const player of players) {
+        let item = playerNodes.get(player.id);
+
+        if(!item) {
+            item = createPlayerItem(player, 'scoreboard-player');
+            playerNodes.set(player.id, item);
+            scoreboardList.appendChild(item);
+        } else {
+            updatePlayerItem(item, player);
+        }
 
         if (player.id === currentPlayerId) {
             item.classList.add('is-current-player');
         }
+    }
+}
 
-        scoreboardList.append(item);
-    });
+function updatePlayerItem(item, player) {
+    const score = item.querySelector('.player-score');
+    score.textContent = `${player.score ?? 0} wins`;
 }
