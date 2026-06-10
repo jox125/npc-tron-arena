@@ -930,9 +930,8 @@ input {
 
 @keyframes cycle-ride {
     0% {
-        left: -38vw;
         opacity: 0;
-        transform: translateY(18px) scale(0.8);
+        transform: translateX(-38vw) translateY(18px) scale(0.8);
     }
 
     12% {
@@ -940,9 +939,8 @@ input {
     }
 
     100% {
-        left: 112vw;
         opacity: 1;
-        transform: translateY(-10px) scale(1.08);
+        transform: translateX(112vw) translateY(-10px) scale(1.08);
     }
 }
 
