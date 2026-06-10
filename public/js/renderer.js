@@ -87,6 +87,8 @@ function renderTrails(prev, curr, t) {
     const currTrails = curr.trails;
     const prevTrails = new Map(prev.trails.map(s => [s.id, s]));
 
+    cleanupTrails();
+
     for(const seg of currTrails) {
         let el = trailElements[seg.id];
 
