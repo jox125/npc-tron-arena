@@ -1,4 +1,5 @@
 import { state } from './client.js';
+import { playerNodes } from './ui.js';
 
 const SERVER_TICK_MS = 1000 / 30;           // 33.3ms
 const PLAYER_SIZE = 10;                     // 10px player
@@ -9,12 +10,19 @@ const ARENA_SIZE = 800;
 const INDICATOR_RANGE = 70;
 const INDICATOR_LONG_SIDE = 120;
 const INDICATOR_SHORT_SIDE = 25;
+const POWER_UP_ICONS = {
+    GHOST:         '👻',
+    FREEZE:        '❄️',
+    TRAIL_ERASER:  '🧹',
+    TRAIL_BREAKER: '⚡',
+};
 
 const arena = document.querySelector('#arena');
 
 const playerElements = {};  // { socketId: <div> }
 const trailElements = {};   // { segmentId: <div> }
 const wrapIndicators = {};  // { playerId: <div> }
+const powerUpElements = {}; // { powerUpId: <div> }
 
 // --- MAIN LOOP ---
 
@@ -32,6 +40,7 @@ function gameLoop(now) {
         if(Object.keys(trailElements).length > 0) cleanupTrails();
         if(Object.keys(playerElements).length > 0) cleanupAllPlayers();
         if(Object.keys(wrapIndicators).length > 0) cleanupIndicators();
+        if(Object.keys(powerUpElements).length > 0) cleanupPowerups();
         return;
     }
 
@@ -40,6 +49,8 @@ function gameLoop(now) {
     renderPlayers(prev, curr, t);
     renderTrails(prev, curr, t);
     renderWrapIndicators(curr);
+    renderPowerUps(curr);
+    updatePlayerStatusBars(curr.players);
 }
 
 function startLoop() {
@@ -116,6 +127,107 @@ function cleanupTrails() {
     for(const id in trailElements) {
         trailElements[id].remove();
         delete trailElements[id];
+    }
+}
+
+// --- POWERUPS ---
+
+function renderPowerUps(curr) {
+    const alive = new Set(curr.powerUps.map(p => p.id));
+
+    // create/update powerups
+    for(const p of curr.powerUps) {
+        let el = powerUpElements[p.id];
+
+        if(!el) {
+            el = document.createElement('div');
+            el.dataset.id = p.id;
+            el.classList.add('powerup');
+            el.textContent = POWER_UP_ICONS[p.type];
+            el.style.cssText = `
+                font-size: ${p.radius * 2}px;
+                left: ${p.x}px;
+                top: ${p.y}px;
+            `;
+            arena.appendChild(el);
+            powerUpElements[p.id] = el;
+        }
+    }
+
+    // Remove used powerups
+    for(const id in powerUpElements) {
+        if(!alive.has(id)) removePowerUp(id);
+    }
+}
+
+function updatePlayerStatusBars(players) {
+    const now = Date.now();
+
+    for(const [id, player] of Object.entries(players)) {
+        const item = playerNodes.get(id);
+        if(!item) continue;
+
+        const statusContainer = item.querySelector(`#status-${id}`);
+
+        // Ghost
+        updateStatusIcon(
+            statusContainer,
+            `ghost-${id}`,
+            POWER_UP_ICONS.GHOST,
+            player.isGhost && player.ghostExpiresAt
+        );
+
+        // Freeze
+        updateStatusIcon(
+            statusContainer,
+            `freeze-${id}`,
+            POWER_UP_ICONS.FREEZE,
+            player.isFrozen && player.freezeExpiresAt
+        );
+
+        // Trail breaker
+        updateStatusIcon(
+            statusContainer,
+            `shield-${id}`,
+            POWER_UP_ICONS.TRAIL_BREAKER,
+            player.hasShield
+        );
+    }
+}
+
+function createPowerUpIcon(playerId, icon) {
+    const el = document.createElement('span');
+    el.className = 'status-icon';
+    el.textContent = icon;
+    return el;
+}
+
+function updateStatusIcon(parent, iconId, iconText, active) {
+    let el = parent.querySelector(`#${iconId}`);
+
+    if(active) {
+        if(!el) {
+            el = document.createElement('span');
+            el.id = iconId;
+            el.className = 'status-icon';
+            el.textContent = iconText;
+
+            parent.appendChild(el);
+        }
+    } else {
+        el?.remove();
+    }
+}
+
+function removePowerUp(id) {
+    if(!powerUpElements[id]) return;
+    powerUpElements[id].remove();
+    delete powerUpElements[id];
+}
+
+function cleanupPowerups() {
+    for(const id in powerUpElements) {
+        removePowerUp(id);
     }
 }
 

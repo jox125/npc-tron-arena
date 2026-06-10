@@ -36,6 +36,8 @@ const roundStatus = document.querySelector('#round-status');
 const systemNotice = document.querySelector('#system-notice');
 let systemNoticeTimeout = null;
 
+export const playerNodes = new Map();
+
 export function showScreen(gameStatus) {
     lobbyScreen.classList.toggle('hidden', gameStatus !== 'LOBBY');
     gameScreen.classList.toggle('hidden', gameStatus === 'LOBBY');
@@ -298,6 +300,7 @@ function createPlayerItem(player, className) {
     const color = document.createElement('span');
     const name = document.createElement('span');
     const score = document.createElement('span');
+    const statusIcons = document.createElement('div');
 
     item.className = className;
     item.style.setProperty('--player-color', player.color);
@@ -307,8 +310,10 @@ function createPlayerItem(player, className) {
         `P${player.playerNumber} · ${player.name}${player.isHost ? ' (Host)' : ''}`;
     score.className = 'player-score';
     score.textContent = `${player.score ?? 0} wins`;
+    statusIcons.className = 'player-status-icons';
+    statusIcons.id = `status-${player.id}`;
 
-    item.append(color, name, score);
+    item.append(color, name, score, statusIcons);
     return item;
 }
 
@@ -330,15 +335,34 @@ export function updateLobbyPlayers(players) {
 }
 
 export function updateScoreboard(players, currentPlayerId) {
-    scoreboardList.replaceChildren();
+    const activePlayers = new Set();
 
-    players.forEach((player) => {
-        const item = createPlayerItem(player, 'scoreboard-player');
+    for(const player of players) {
+        let item = playerNodes.get(player.id);
+        activePlayers.add(player.id);
+        
+        if(!item) {
+            item = createPlayerItem(player, 'scoreboard-player');
+            playerNodes.set(player.id, item);
+            scoreboardList.appendChild(item);
+        } else {
+            updatePlayerItem(item, player);
+        }
 
         if (player.id === currentPlayerId) {
             item.classList.add('is-current-player');
         }
+    }
 
-        scoreboardList.append(item);
-    });
+    for(const [id, node] of playerNodes) {
+        if(!activePlayers.has(id)) {
+            node.remove();
+            playerNodes.delete(id);
+        }
+    }
+}
+
+function updatePlayerItem(item, player) {
+    const score = item.querySelector('.player-score');
+    score.textContent = `${player.score ?? 0} wins`;
 }
