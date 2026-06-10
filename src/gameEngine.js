@@ -1,4 +1,5 @@
 import { checkTrailCollision } from './collision.js';
+import { processPowerUpCollection, maintainPowerUpTimers } from './powerUp.js';
 // Game dimensions configuration
 export const ARENA_WIDTH = 800;
 export const ARENA_HEIGHT = 800;
@@ -16,7 +17,8 @@ export let gameState = {
     eliminationOrder: [],
     eliminatedPlayers: {},
     players: {},         // Keyed by socket.id
-    trails: []           // Array of solid trail line rectangles
+    trails: [],           // Array of solid trail line rectangles
+    powerUps: []        // Array of items: { id, type, x, y, radius: 15 }
 };
 
 /**
@@ -28,6 +30,8 @@ export function updateGamePhysics() {
         if (!player.isAlive) return;
 
         player.teleported = false;
+
+        maintainPowerUpTimers(player);
 
         // Apply continuous physics vectors
         player.x += player.dx;
@@ -51,6 +55,7 @@ export function updateGamePhysics() {
             player.teleported = true;
             startNewTrailSegment(player);
         }
+        processPowerUpCollection(player, gameState);
     });
 
     // Run the collision engine loop
