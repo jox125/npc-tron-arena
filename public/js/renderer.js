@@ -5,11 +5,16 @@ const PLAYER_SIZE = 10;                     // 10px player
 const PLAYER_OFFSET = PLAYER_SIZE / 2;      // converts top-left positioning to center-based positioning
 const TRAIL_THICKNESS = 8;                  // matches backend collision
 const TRAIL_OFFSET = TRAIL_THICKNESS / 2;   // converts top-left positioning to center-based positioning
+const ARENA_SIZE = 800;
+const INDICATOR_RANGE = 70;
+const INDICATOR_LONG_SIDE = 120;
+const INDICATOR_SHORT_SIDE = 25;
 
 const arena = document.querySelector('#arena');
 
 const playerElements = {};  // { socketId: <div> }
 const trailElements = {};   // { segmentId: <div> }
+const wrapIndicators = {};  // { playerId: <div> }
 
 // --- MAIN LOOP ---
 
@@ -24,13 +29,9 @@ function gameLoop(now) {
     // Only render player movement when playing
     // And cleanup if needed
     if(curr.gameStatus !== 'PLAYING') {
-        if(Object.keys(trailElements).length > 0) {
-            cleanupTrails();
-        }
-        if(Object.keys(playerElements).length > 0) {
-            cleanupAllPlayers();
-        }
-
+        if(Object.keys(trailElements).length > 0) cleanupTrails();
+        if(Object.keys(playerElements).length > 0) cleanupAllPlayers();
+        if(Object.keys(wrapIndicators).length > 0) cleanupIndicators();
         return;
     }
 
@@ -38,6 +39,7 @@ function gameLoop(now) {
     const t = Math.min((now - state.lastUpdate) / SERVER_TICK_MS, 1);
     renderPlayers(prev, curr, t);
     renderTrails(prev, curr, t);
+    renderWrapIndicators(curr);
 }
 
 function startLoop() {
@@ -117,6 +119,93 @@ function cleanupTrails() {
     }
 }
 
+// --- WRAP INDICATORS ---
+
+function renderWrapIndicators(curr) {
+    const players = curr.players || {};
+
+    for(const [id, player] of Object.entries(players)) {
+        let el = wrapIndicators[id];
+
+        if(!el) {
+            el = document.createElement('div');
+            el.classList.add('wrap-indicator');
+            arena.appendChild(el);
+            wrapIndicators[id] = el;
+        }
+
+        // Find distance to edge
+        const distLeft = player.x;
+        const distTop = player.y;
+        const distRight = ARENA_SIZE - player.x;
+        const distBottom = ARENA_SIZE - player.y;
+
+        const minDist = Math.min(distLeft, distRight, distTop, distBottom);
+        
+        if(minDist > INDICATOR_RANGE) el.style.opacity = 0;
+
+        const intensity = 1 - (minDist / INDICATOR_RANGE);
+        const rgbColor = hexToRgb(player.color);
+
+        let x = 0;
+        let y = 0;
+        let w = 0;
+        let h = 0;
+        let gradient = "";
+
+        // Center indicator on player
+        let x_offset = player.x - 50;
+        let y_offset = player.y - 50;
+        
+        // Opposite edge warning
+        if(minDist === distLeft) {
+            x = ARENA_SIZE - INDICATOR_SHORT_SIDE;
+            y = y_offset;
+            w = INDICATOR_SHORT_SIDE;
+            h = INDICATOR_LONG_SIDE;
+            gradient = `linear-gradient(to left, rgba(${rgbColor}, 0.3), transparent)`;
+        } else if(minDist === distRight) {
+            x = 0;
+            y = y_offset;
+            w = INDICATOR_SHORT_SIDE;
+            h = INDICATOR_LONG_SIDE;
+            gradient = `linear-gradient(to right, rgba(${rgbColor}, 0.3), transparent)`;
+        } else if(minDist === distTop) {
+            x = x_offset;
+            y = ARENA_SIZE - INDICATOR_SHORT_SIDE;
+            w = INDICATOR_LONG_SIDE;
+            h = INDICATOR_SHORT_SIDE;
+            gradient = `linear-gradient(to top, rgba(${rgbColor}, 0.3), transparent)`;
+        } else {
+            x = x_offset;
+            y = 0;
+            w = INDICATOR_LONG_SIDE;
+            h = INDICATOR_SHORT_SIDE;
+            gradient = `linear-gradient(to bottom, rgba(${rgbColor}, 0.3), transparent)`;
+        }
+
+        el.style.cssText = `
+            width: ${w}px;
+            height: ${h}px;
+            left: ${x}px;
+            top: ${y}px;
+            opacity: ${intensity};
+            background: ${gradient};
+        `;
+    }
+
+    cleanupIndicators(players);
+}
+
+function cleanupIndicators(currentPlayers = {}) {
+    for (const id in wrapIndicators) {
+        if (!currentPlayers[id]) {
+            wrapIndicators[id].remove();
+            delete wrapIndicators[id];
+        }
+    }
+}
+
 // --- PLAYER DIV MANAGEMENT ---
 
 function getOrCreatePlayerDiv(id, color) {
@@ -159,6 +248,18 @@ function cleanupAllPlayers() {
 // Interpolation helper
 function lerp(a, b, t) {
     return a + (b - a) * t;
+}
+
+function hexToRgb(hex) {
+    hex = hex.replace('#', '');
+
+    const bigint = parseInt(hex, 16);
+
+    const r = (bigint >> 16) & 255;
+    const g = (bigint >> 8) & 255;
+    const b = bigint & 255;
+
+    return `${r}, ${g}, ${b}`;
 }
 
 export { startLoop };
