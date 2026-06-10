@@ -348,6 +348,13 @@ export function updateScoreboard(players, currentPlayerId) {
             item.classList.add('is-current-player');
         }
     }
+
+    for(const [id, node] of playerNodes) {
+        if(!activePlayers.has(id)) {
+            node.remove();
+            playerNodes.delete(id);
+        }
+    }
 }
 
 function updatePlayerItem(item, player) {
