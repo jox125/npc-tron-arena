@@ -1,3 +1,5 @@
+import { startNewTrailSegment, gameState } from './gameEngine.js';
+
 /**
  * Checks if a live player has collided with any solid trail segments in the arena.
  * @param {Object} player - The individual player object to check
@@ -5,7 +7,14 @@
  * @returns {boolean} True if a crash is detected, otherwise false
  */
 export function checkTrailCollision(player, trails) {
-    for (const segment of trails) {
+    // Temporarily skip all checks if the player is in a ghost phase
+    if (player.isGhost) {
+        return false;
+    }
+
+    for (let i = trails.length - 1; i >= 0; i--) {
+        const segment = trails[i];
+
         // 1. Skip checking against the segment actively growing out of the player's back
         if (segment.id === player.currentTrailId) continue;
 
@@ -29,9 +38,23 @@ export function checkTrailCollision(player, trails) {
 
         // Check if the player's vehicle coordinate is inside the rectangle boundaries
         if (player.x >= minX && player.x <= maxX && player.y >= minY && player.y <= maxY) {
+
+            // Trail Breaker Shield Override
+            if (player.hasShield) {
+                // Drop the permanent shield flag
+                player.hasShield = false;
+
+                // Erase the intersected trail segment array row from existence
+                trails.splice(i, 1);
+
+                // Force a new trail segment anchor to keep the player's line unbroken
+                startNewTrailSegment(player);
+
+                // Send a quick update to everyone so the destroyed trail div vanishes instantly
+                return false;
+            }
             return true; // Crash detected
         }
     }
-
     return false; // Safe
 }

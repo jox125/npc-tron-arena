@@ -15,10 +15,12 @@ import {
     resetGameToLobby,
     startNewTrailSegment
 } from './src/gameEngine.js';
+import { spawnRandomPowerUp } from './src/powerUp.js';
 
 const COUNTDOWN_STEP_MS = 750;
 let countdownInterval = null;
 let systemNoticeId = 0;
+let powerUpInterval = null;
 
 const app = express();
 const httpServer = createServer(app);
@@ -352,11 +354,22 @@ function startRoundCountdown() {
             clearInterval(countdownInterval);
             countdownInterval = null;
             gameState.gameStatus = "PLAYING";
+            gameState.powerUps = [];
 
             Object.values(gameState.players).forEach(player => {
                 setPlayerStartPosition(player);
                 startNewTrailSegment(player);
             });
+
+            // Drop loop clock checking every 6 seconds
+            if (powerUpInterval) clearInterval(powerUpInterval);
+            powerUpInterval = setInterval(() => {
+                if (gameState.gameStatus === "PLAYING") {
+                    spawnRandomPowerUp();
+                } else {
+                    clearInterval(powerUpInterval);
+                }
+            }, 6000);
         }
         io.emit('GAME_STATE_UPDATE', gameState);
     }, COUNTDOWN_STEP_MS);
