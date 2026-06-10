@@ -778,6 +778,13 @@ input {
     font: inherit;
 }
 
+.wrap-indicator {
+    position: absolute;
+    pointer-events: none;
+    filter: blur(6px);
+    mix-blend-mode: screen;
+}
+
 .result-rankings {
     display: grid;
     gap: 10px;
