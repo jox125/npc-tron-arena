@@ -785,6 +785,12 @@ input {
     mix-blend-mode: screen;
 }
 
+.powerup {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
 .result-rankings {
     display: grid;
     gap: 10px;
