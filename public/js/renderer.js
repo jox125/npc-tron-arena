@@ -1,4 +1,5 @@
 import { state } from './client.js';
+import { playerNodes } from './ui.js';
 
 const SERVER_TICK_MS = 1000 / 30;           // 33.3ms
 const PLAYER_SIZE = 10;                     // 10px player
@@ -49,6 +50,7 @@ function gameLoop(now) {
     renderTrails(prev, curr, t);
     renderWrapIndicators(curr);
     renderPowerUps(curr);
+    updatePlayerStatusBars(curr.players);
 }
 
 function startLoop() {
@@ -155,6 +157,65 @@ function renderPowerUps(curr) {
     // Remove used powerups
     for(const id in powerUpElements) {
         if(!alive.has(id)) removePowerUp(id);
+    }
+}
+
+function updatePlayerStatusBars(players) {
+    const now = Date.now();
+
+    for(const [id, player] of Object.entries(players)) {
+        const item = playerNodes.get(id);
+        if(!item) continue;
+
+        const statusContainer = item.querySelector(`#status-${id}`);
+
+        // Ghost
+        updateStatusIcon(
+            statusContainer,
+            `ghost-${id}`,
+            POWER_UP_ICONS.GHOST,
+            player.isGhost && player.ghostExpiresAt
+        );
+
+        // Freeze
+        updateStatusIcon(
+            statusContainer,
+            `freeze-${id}`,
+            POWER_UP_ICONS.FREEZE,
+            player.isFrozen && player.freezeExpiresAt
+        );
+
+        // Trail breaker
+        updateStatusIcon(
+            statusContainer,
+            `shield-${id}`,
+            POWER_UP_ICONS.TRAIL_BREAKER,
+            player.hasShield
+        );
+    }
+}
+
+function createPowerUpIcon(playerId, icon) {
+    const el = document.createElement('span');
+    el.className = 'status-icon';
+    el.textContent = icon;
+    return el;
+}
+
+function updateStatusIcon(parent, iconId, iconText, active) {
+    let el = parent.querySelector(`#${iconId}`);
+
+    if(active) {
+        if(!el) {
+            el = document.createElement('span');
+            el.id = iconId;
+            el.className = 'status-icon';
+            el.textContent = iconText;
+
+            parent.appendChild(el);
+        }
+    } else {
+        el?.remove();
     }
 }
 

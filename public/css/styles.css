@@ -269,12 +269,24 @@ input {
 .player-list__item,
 .scoreboard-player {
     display: flex;
+    flex-direction: column;
     align-items: center;
     gap: 12px;
     min-height: 48px;
     border-left: 2px solid var(--player-color, var(--cyan));
     padding: 10px 12px;
     background: rgba(0, 217, 255, 0.045);
+}
+
+.player-status-icons {
+    display: flex;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.status-icon {
+    font-size: 18px;
+    line-height: 1;
 }
 
 .player-color {

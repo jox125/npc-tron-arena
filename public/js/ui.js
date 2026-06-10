@@ -34,8 +34,9 @@ const startGameMessage = document.querySelector('#start-game-message');
 const winsRequiredSelect = document.querySelector('#wins-required');
 const roundStatus = document.querySelector('#round-status');
 const systemNotice = document.querySelector('#system-notice');
-const playerNodes = new Map();
 let systemNoticeTimeout = null;
+
+export const playerNodes = new Map();
 
 export function showScreen(gameStatus) {
     lobbyScreen.classList.toggle('hidden', gameStatus !== 'LOBBY');
@@ -215,7 +216,7 @@ export function renderRoundResult(gameState, players, currentPlayerId) {
     });
 
     const isHost = currentPlayer?.isHost === true;
-    const canStartNextRound = !isMatchOver && players.length >= 1;
+    const canStartNextRound = !isMatchOver && players.length >= 2;
     nextRoundButton.classList.toggle('hidden', !isHost || !canStartNextRound);
     returnToLobbyButton.classList.toggle('hidden', !isHost || canStartNextRound);
     nextRoundButton.disabled = false;
@@ -263,7 +264,7 @@ export function updateLobbyActions(players, currentPlayerId) {
     }
 
     const isHost = currentPlayer.isHost === true;
-    const canStart = isHost && players.length >= 1;
+    const canStart = isHost && players.length >= 2;
 
     leaveLobbyButton.disabled = false;
     startGameButton.classList.toggle('hidden', !isHost);
@@ -299,6 +300,7 @@ function createPlayerItem(player, className) {
     const color = document.createElement('span');
     const name = document.createElement('span');
     const score = document.createElement('span');
+    const statusIcons = document.createElement('div');
 
     item.className = className;
     item.style.setProperty('--player-color', player.color);
@@ -308,8 +310,10 @@ function createPlayerItem(player, className) {
         `P${player.playerNumber} · ${player.name}${player.isHost ? ' (Host)' : ''}`;
     score.className = 'player-score';
     score.textContent = `${player.score ?? 0} wins`;
+    statusIcons.className = 'player-status-icons';
+    statusIcons.id = `status-${player.id}`;
 
-    item.append(color, name, score);
+    item.append(color, name, score, statusIcons);
     return item;
 }
 
@@ -335,7 +339,8 @@ export function updateScoreboard(players, currentPlayerId) {
 
     for(const player of players) {
         let item = playerNodes.get(player.id);
-
+        activePlayers.add(player.id);
+        
         if(!item) {
             item = createPlayerItem(player, 'scoreboard-player');
             playerNodes.set(player.id, item);
