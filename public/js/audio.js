@@ -8,14 +8,14 @@ export const AUDIO_CUES = Object.freeze({
     victory: '/audio/victory.mp3',
     defeat: '/audio/defeat.mp3',
     powerup_appears: '/audio/powerup_appears.mp3',
-    powerup_ghost_activate: 'powerup_ghost_activate.mp3',
-    powerup_ghost_deactivate: 'powerup_ghost_deactivate.mp3',
-    powerup_freeze_activate: 'powerup_freeze_activate.mp3',
-    powerup_freeze_deactivate: 'powerup_freeze_deactivate.mp3',
-    powerup_trail_eraser_activate: 'powerup_trail_eraser_activate.mp3',
-    powerup_trail_eraser_deactivate: 'powerup_trail_eraser_deactivate.mp3',
-    powerup_trail_breaker_activate: 'powerup_trail_breaker_activate.mp3',
-    powerup_trail_breaker_deactivate: 'powerup_trail_breaker_deactivate.mp3'
+    powerup_ghost_activate: '/audio/powerup_ghost_activate.mp3',
+    powerup_ghost_deactivate: '/audio/powerup_ghost_deactivate.mp3',
+    powerup_freeze_activate: '/audio/powerup_freeze_activate.mp3',
+    powerup_freeze_deactivate: '/audio/powerup_freeze_deactivate.mp3',
+    powerup_trail_eraser_activate: '/audio/powerup_trail_eraser_activate.mp3',
+    powerup_trail_eraser_deactivate: '/audio/powerup_trail_eraser_deactivate.mp3',
+    powerup_trail_breaker_activate: '/audio/powerup_trail_breaker_activate.mp3',
+    powerup_trail_breaker_deactivate: '/audio/powerup_trail_breaker_deactivate.mp3'
 });
 
 const sounds = createSoundRegistry();
