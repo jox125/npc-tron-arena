@@ -63,7 +63,7 @@ export function updateGamePhysics() {
         if (!player.isAlive) return;
 
         if (checkTrailCollision(player, gameState.trails)) {
-            eliminatePlayer(player.id);
+            //eliminatePlayer(player.id);
         }
     });
 }

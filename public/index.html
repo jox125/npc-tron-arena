@@ -58,6 +58,16 @@
                         <span class="key">D</span>
                         <span>or arrow keys to turn</span>
                     </div>
+
+                    <div class="audio-controls" aria-label="Audio settings">
+                        <span class="audio-controls__label">Audio</span>
+                        <button class="audio-toggle" type="button" data-audio-setting="music" aria-pressed="true">
+                            Music <span data-audio-state>On</span>
+                        </button>
+                        <button class="audio-toggle" type="button" data-audio-setting="sfx" aria-pressed="true">
+                            SFX <span data-audio-state>On</span>
+                        </button>
+                    </div>
                 </section>
 
                 <aside class="panel players-panel" aria-labelledby="players-title">
@@ -147,6 +157,15 @@
             </div>
             <h2 id="paused-title">Game paused</h2>
             <p id="paused-by" class="paused-view__player">Paused by player</p>
+            <div class="audio-controls audio-controls--overlay" aria-label="Audio settings">
+                <span class="audio-controls__label">Audio</span>
+                <button class="audio-toggle" type="button" data-audio-setting="music" aria-pressed="true">
+                    Music <span data-audio-state>On</span>
+                </button>
+                <button class="audio-toggle" type="button" data-audio-setting="sfx" aria-pressed="true">
+                    SFX <span data-audio-state>On</span>
+                </button>
+            </div>
             <div class="paused-view__actions">
                 <button id="resume-game-button" class="neon-button" type="button">
                     Resume game

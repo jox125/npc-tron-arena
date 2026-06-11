@@ -1,52 +1,112 @@
 const SAMPLE_RATE = 16000;
-
-export const AUDIO_CUES = Object.freeze({
-    countdown: '/audio/beep.mp3',
-    countdownFinal: '/audio/beep_high.mp3',
-    roundStart: '/audio/electric.mp3',
-    elimination: '/audio/elimination.mp3',
-    victory: '/audio/victory.mp3',
-    defeat: '/audio/defeat.mp3',
-    powerup_appears: '/audio/powerup_appears.mp3',
-    powerup_ghost_activate: '/audio/powerup_ghost_activate.mp3',
-    powerup_ghost_deactivate: '/audio/powerup_ghost_deactivate.mp3',
-    powerup_freeze_activate: '/audio/powerup_freeze_activate.mp3',
-    powerup_freeze_deactivate: '/audio/powerup_freeze_deactivate.mp3',
-    powerup_trail_eraser_activate: '/audio/powerup_trail_eraser_activate.mp3',
-    powerup_trail_eraser_deactivate: '/audio/powerup_trail_eraser_deactivate.mp3',
-    powerup_trail_breaker_activate: '/audio/powerup_trail_breaker_activate.mp3',
-    powerup_trail_breaker_deactivate: '/audio/powerup_trail_breaker_deactivate.mp3'
+const MUSIC_VOLUME = 0.1;
+const AUDIO_SETTINGS_STORAGE_KEY = 'tron-audio-settings-v1';
+const DEFAULT_AUDIO_SETTINGS = Object.freeze({
+    music: true,
+    sfx: true
 });
 
+export const AUDIO_CUES = Object.freeze({
+    countdown: '/assets/audio/beep.mp3',
+    countdownFinal: '/assets/audio/beep_high.mp3',
+    roundStart: '/assets/audio/electric.mp3',
+    elimination: '/assets/audio/elimination.mp3',
+    victory: '/assets/audio/victory.mp3',
+    defeat: '/assets/audio/defeat.mp3',
+    powerup_appears: '/assets/audio/powerup_appears.mp3',
+    powerup_ghost_activate: '/assets/audio/powerup_ghost_activate.mp3',
+    powerup_ghost_deactivate: '/assets/audio/powerup_ghost_deactivate.mp3',
+    powerup_freeze_activate: '/assets/audio/powerup_freeze_activate.mp3',
+    powerup_freeze_deactivate: '/assets/audio/powerup_freeze_deactivate.mp3',
+    powerup_trail_eraser_activate: '/assets/audio/powerup_trail_eraser_activate.mp3',
+    powerup_trail_eraser_deactivate: '/assets/audio/powerup_trail_eraser_deactivate.mp3',
+    powerup_trail_breaker_activate: '/assets/audio/powerup_trail_breaker_activate.mp3',
+    powerup_trail_breaker_deactivate: '/assets/audio/powerup_trail_breaker_deactivate.mp3'
+});
+
+const MUSIC_TRACK_SOURCES = Object.freeze({
+    // Lobby music file location: public/assets/audio/music/lobby.mp3
+    lobby: '/assets/audio/music/lobby.mp3',
+
+    // In-game music file location: public/assets/audio/music/game.mp3
+    game: '/assets/audio/music/game.mp3'
+});
+
+let audioSettings = loadAudioSettings();
 const sounds = createSoundRegistry();
+const musicTracks = createMusicRegistry();
+const audioSettingsListeners = new Set();
 let lastCountdownValue = null;
 let lastGameStatus = null;
+let activeMusicScene = 'lobby';
+let audioUnlocked = false;
 const playedEliminations = new Set();
 
 export function preloadAudio() {
     return Promise.all(
-        Object.values(sounds).map(sound => new Promise(resolve => {
-            if (!sound || sound.state() === 'loaded') {
-                resolve();
-                return;
-            }
+        [...Object.values(sounds), ...Object.values(musicTracks)]
+            .map(sound => new Promise(resolve => {
+                if (!sound || sound.state() === 'loaded') {
+                    resolve();
+                    return;
+                }
 
-            sound.once('load', resolve);
-            sound.once('loaderror', resolve);
-            sound.load();
-        }))
+                sound.once('load', resolve);
+                sound.once('loaderror', resolve);
+                sound.load();
+            }))
     );
 }
 
 export function unlockAudio() {
     const context = window.Howler?.ctx;
+    audioUnlocked = true;
 
+    // Browsers allow background music only after the first user interaction.
     if (context?.state === 'suspended') {
-        context.resume();
+        context.resume().finally(syncMusicPlayback);
+        return;
     }
+
+    syncMusicPlayback();
+}
+
+export function getAudioSettings() {
+    return { ...audioSettings };
+}
+
+export function setAudioSetting(setting, enabled) {
+    if (!(setting in DEFAULT_AUDIO_SETTINGS)) return;
+
+    const nextValue = Boolean(enabled);
+    if (audioSettings[setting] === nextValue) return;
+
+    audioSettings = {
+        ...audioSettings,
+        [setting]: nextValue
+    };
+    saveAudioSettings();
+
+    if (setting === 'music') {
+        syncMusicPlayback();
+    } else if (!nextValue) {
+        stopSoundEffects();
+    }
+
+    const settingsSnapshot = getAudioSettings();
+    audioSettingsListeners.forEach(listener => listener(settingsSnapshot));
+}
+
+export function subscribeAudioSettings(listener) {
+    audioSettingsListeners.add(listener);
+    listener(getAudioSettings());
+
+    return () => audioSettingsListeners.delete(listener);
 }
 
 export function handleGameAudio(gameState, previousState, currentPlayerId) {
+    updateMusicScene(gameState.gameStatus);
+
     if (!currentPlayerId) {
         resetCountdownAudio();
         lastGameStatus = gameState.gameStatus;
@@ -131,7 +191,7 @@ function createSoundRegistry() {
             name,
             new Howl({
                 src: [src],
-                format: ['wav'],
+                format: ['mp3'],
                 preload: true,
                 volume: getCueVolume(name)
             })
@@ -139,7 +199,29 @@ function createSoundRegistry() {
     );
 }
 
+function createMusicRegistry() {
+    const Howl = window.Howl;
+    if (!Howl) return {};
+
+    return Object.fromEntries(
+        Object.entries(MUSIC_TRACK_SOURCES)
+            .filter(([, src]) => Boolean(src))
+            .map(([name, src]) => [
+                name,
+                new Howl({
+                    src: [src],
+                    format: ['mp3'],
+                    loop: true,
+                    preload: true,
+                    volume: MUSIC_VOLUME
+                })
+            ])
+    );
+}
+
 function playSound(name, { rate = 1 } = {}) {
+    if (!audioSettings.sfx) return;
+
     const sound = sounds[name];
     if (!sound) return;
 
@@ -147,11 +229,70 @@ function playSound(name, { rate = 1 } = {}) {
     sound.rate(rate, soundId);
 }
 
+function updateMusicScene(gameStatus) {
+    // Countdown, active play, pause and results all use the in-game track.
+    const nextScene = gameStatus === 'LOBBY' ? 'lobby' : 'game';
+    if (nextScene === activeMusicScene) return;
+
+    Object.values(musicTracks).forEach(track => track.stop());
+    activeMusicScene = nextScene;
+    syncMusicPlayback();
+}
+
+function syncMusicPlayback() {
+    const activeTrack = musicTracks[activeMusicScene];
+
+    Object.entries(musicTracks).forEach(([scene, track]) => {
+        if (scene !== activeMusicScene && track.playing()) {
+            track.stop();
+        }
+    });
+
+    if (!activeTrack) return;
+
+    if (!audioSettings.music || !audioUnlocked) {
+        if (activeTrack.playing()) activeTrack.pause();
+        return;
+    }
+
+    if (!activeTrack.playing()) activeTrack.play();
+}
+
+function stopSoundEffects() {
+    Object.values(sounds).forEach(sound => sound.stop());
+}
+
+function loadAudioSettings() {
+    try {
+        const storedSettings = JSON.parse(
+            localStorage.getItem(AUDIO_SETTINGS_STORAGE_KEY)
+        );
+
+        return {
+            music: storedSettings?.music !== false,
+            sfx: storedSettings?.sfx !== false
+        };
+    } catch {
+        return { ...DEFAULT_AUDIO_SETTINGS };
+    }
+}
+
+function saveAudioSettings() {
+    try {
+        localStorage.setItem(
+            AUDIO_SETTINGS_STORAGE_KEY,
+            JSON.stringify(audioSettings)
+        );
+    } catch {
+        // Audio controls still work for this session when storage is unavailable.
+    }
+}
+
 function getCueVolume(name) {
-    if (name === 'victory' || name === 'defeat') return 0.32;
-    if (name === 'roundStart') return 0.26;
-    if (name === 'elimination') return 0.22;
-    return 0.18;
+    if (name === 'victory' || name === 'defeat') return 0.60;
+    if (name === 'roundStart') return 0.54;
+    if (name === 'elimination') return 0.49;
+    return 0.60;
 }
 
 function createToneWav({
