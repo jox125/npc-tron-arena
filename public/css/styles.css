@@ -311,6 +311,26 @@ input {
     font-variant-numeric: tabular-nums;
 }
 
+.player-vehicle--blue {
+    background: url("../assets/cycle_blue.png") no-repeat center / cover;
+    background-size: contain;
+}
+
+.player-vehicle--red {
+    background: url("../assets/cycle_red.png") no-repeat center / cover;
+    background-size: contain;
+}
+
+.player-vehicle--yellow {
+    background: url("../assets/cycle_yellow.png") no-repeat center / cover;
+    background-size: contain;
+}
+
+.player-vehicle--green {
+    background: url("../assets/cycle_green.png") no-repeat center / cover;
+    background-size: contain;
+}
+
 .player-list__empty {
     padding: 18px 0;
     color: var(--muted);
