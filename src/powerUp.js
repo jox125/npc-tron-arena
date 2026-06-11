@@ -15,7 +15,7 @@ export function spawnRandomPowerUp(gameState) {
     let positionIsSafe = false;
 
     // Retry loop to find a clear coordinate segment
-    while (!positionIsSafe && attempts < 50) {
+    while (!positionIsSafe && attempts < 100) {
         attempts++;
         // Maintain a 50px safety padding boundary away from the outer edges
         safeX = Math.floor(Math.random() * (ARENA_WIDTH - 100)) + 50;
@@ -28,6 +28,24 @@ export function spawnRandomPowerUp(gameState) {
             if (player.isAlive && Math.hypot(player.x - safeX, player.y - safeY) < 60) {
                 positionIsSafe = false;
                 break;
+            }
+        }
+        // Verify coordinate clearance away from solid trails
+        if (positionIsSafe) {
+            for (const segment of gameState.trails) {
+                // Find the closest point on this line segment to our random safeX, safeY
+                const minX = Math.min(segment.x1, segment.x2);
+                const maxX = Math.max(segment.x1, segment.x2);
+                const minY = Math.min(segment.y1, segment.y2);
+                const maxY = Math.max(segment.y1, segment.y2);
+
+                // Give the power-up a 30px buffer zone around trails so it doesn't clip them
+                const buffer = 30;
+                if (safeX >= minX - buffer && safeX <= maxX + buffer &&
+                    safeY >= minY - buffer && safeY <= maxY + buffer) {
+                    positionIsSafe = false;
+                    break; // Fail item position, retry!
+                }
             }
         }
     }
