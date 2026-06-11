@@ -209,7 +209,7 @@ function updatePlayerStatusBars(players) {
         );
 
         if(player.isFrozen && player.freezeExpiresAt) {
-            playerDiv.style.filter = 'brightness(1) sepia(0.5) hue-rotate(180deg)';
+            playerDiv.style.filter = 'brightness(1) sepia(1) hue-rotate(180deg)';
         } else {
             playerDiv.style.filter = 'none';
         }
