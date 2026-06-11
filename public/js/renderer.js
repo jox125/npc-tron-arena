@@ -4,7 +4,9 @@ import { playerNodes } from './ui.js';
 const SERVER_TICK_MS = 1000 / 30;           // 33.3ms
 const PLAYER_SIZE = 10;                     // 10px player
 const PLAYER_OFFSET = PLAYER_SIZE / 2;      // converts top-left positioning to center-based positioning
-const TRAIL_THICKNESS = 8;                  // matches backend collision
+const PLAYER_IMG_X = 21;                    // Player sprite size_x
+const PLAYER_IMG_Y = 41;                    // Player sprite size_y
+const TRAIL_THICKNESS = 5;                  // matches backend collision
 const TRAIL_OFFSET = TRAIL_THICKNESS / 2;   // converts top-left positioning to center-based positioning
 const ARENA_SIZE = 800;
 const INDICATOR_RANGE = 70;
@@ -20,6 +22,7 @@ const POWER_UP_ICONS = {
 const arena = document.querySelector('#arena');
 
 const playerElements = {};  // { socketId: <div> }
+const playerImages = {};    // { socketId: <img> }
 const trailElements = {};   // { segmentId: <div> }
 const wrapIndicators = {};  // { playerId: <div> }
 const powerUpElements = {}; // { powerUpId: <div> }
@@ -78,8 +81,17 @@ function renderPlayers(prev, curr, t) {
             ? lerp(prevPlayer.y, player.y, t) - PLAYER_OFFSET
             : player.y - PLAYER_OFFSET;
 
+        
+        // Player sprite rotation
+        let angle = -90;
+        if (player.dx > 0) angle = -90;
+        if (player.dx < 0) angle = 90;
+        if (player.dy > 0) angle = 0;
+        if (player.dy < 0) angle = 180;
+
         const div = getOrCreatePlayerDiv(id, player.color);
-        div.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+
+        div.style.transform = `translate3d(${x}px, ${y}px, 0) rotate(${angle}deg)`;
     }
 }
 
@@ -99,7 +111,9 @@ function renderTrails(prev, curr, t) {
             el.style.cssText = `
                 position: absolute;
                 background-color: ${seg.color};
+                box-shadow: 0 0 4px ${seg.color}, 0 0 16px ${seg.color};
                 will-change: transform;
+                z-index: 1;
             `;            
             arena.appendChild(el);
             trailElements[seg.id] = el;
@@ -170,6 +184,7 @@ function updatePlayerStatusBars(players) {
         if(!item) continue;
 
         const statusContainer = item.querySelector(`#status-${id}`);
+        const playerDiv = getOrCreatePlayerDiv(id, player.color);
 
         // Ghost
         updateStatusIcon(
@@ -179,6 +194,12 @@ function updatePlayerStatusBars(players) {
             player.isGhost && player.ghostExpiresAt
         );
 
+        if(player.isGhost && player.ghostExpiresAt) {
+            playerDiv.style.opacity = 0.4;
+        } else {
+            playerDiv.style.opacity = 1;
+        }
+
         // Freeze
         updateStatusIcon(
             statusContainer,
@@ -186,6 +207,12 @@ function updatePlayerStatusBars(players) {
             POWER_UP_ICONS.FREEZE,
             player.isFrozen && player.freezeExpiresAt
         );
+
+        if(player.isFrozen && player.freezeExpiresAt) {
+            playerDiv.style.filter = 'brightness(1) sepia(0.5) hue-rotate(180deg)';
+        } else {
+            playerDiv.style.filter = 'none';
+        }
 
         // Trail breaker
         updateStatusIcon(
@@ -331,18 +358,56 @@ function getOrCreatePlayerDiv(id, color) {
         position: absolute;
         width: ${PLAYER_SIZE}px;
         height: ${PLAYER_SIZE}px;
-        background-color: ${color};
         will-change: transform;
+        z-index: 2;
     `;
     arena.appendChild(div);
     playerElements[id] = div;
+    
+    getOrCreatePlayerImage(id, color);
+
     return div;
+}
+
+
+function getOrCreatePlayerImage(id, color) {
+    if(playerImages[id]) return playerImages[id];
+
+    const img = document.createElement('div');
+    const div = getOrCreatePlayerDiv(id, color);
+    img.classList.add('player-image');
+
+    if(color === '#00d9ff') img.classList.add('player-vehicle--blue');
+    else if(color === '#ff3f68') img.classList.add('player-vehicle--red');
+    else if(color === '#29ff9a') img.classList.add('player-vehicle--green');
+    else if(color === '#ffb000') img.classList.add('player-vehicle--yellow');
+
+    img.style.cssText = `
+        position: absolute;
+        width: ${PLAYER_IMG_X}px;
+        height: ${PLAYER_IMG_Y}px;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        transform-origin: center;
+        will-change: transform;
+        image-rendering: pixelated;
+    `;
+
+    div.appendChild(img);
+    playerImages[id] = img;
+
+    return img;
 }
 
 function removePlayerDiv(id) {
     if(!playerElements[id]) return;
     playerElements[id].remove();
     delete playerElements[id];
+    
+    if(!playerImages[id]) return;
+    playerImages[id].remove();
+    delete playerImages[id];
 }
 
 function cleanupPlayers(currentPlayers) {
