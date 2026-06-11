@@ -514,7 +514,6 @@ input {
         linear-gradient(90deg, color-mix(in srgb, var(--overlay-color) 5%, transparent) 1px, transparent 1px),
         radial-gradient(circle, color-mix(in srgb, var(--overlay-color) 13%, #02050a) 0, #02050a 64%);
     background-size: 52px 52px, 52px 52px, auto;
-    backdrop-filter: blur(7px);
 }
 
 .overlay::before {
@@ -528,6 +527,7 @@ input {
     content: "";
     animation: overlay-scan 2.2s linear infinite;
     pointer-events: none;
+    will-change: transform;
 }
 
 .winner-celebration {
@@ -610,7 +610,7 @@ input {
 
 .countdown__stage {
     display: grid;
-    min-height: clamp(220px, 40vh, 420px);
+    height: clamp(220px, 40vh, 420px);
     place-items: center;
     perspective: 700px;
 }
@@ -929,17 +929,11 @@ input {
 @keyframes countdown-arrive {
     0% {
         opacity: 0;
-        filter: blur(18px);
         transform: translateZ(-520px) scale(0.18);
     }
 
     45% {
         opacity: 1;
-    }
-
-    75% {
-        filter: blur(0);
-        transform: translateZ(25px) scale(1.08);
     }
 
     100% {

@@ -35,10 +35,18 @@ const winsRequiredSelect = document.querySelector('#wins-required');
 const roundStatus = document.querySelector('#round-status');
 const systemNotice = document.querySelector('#system-notice');
 let systemNoticeTimeout = null;
+let lastShownStatus = null;
+let lastRoundStatus = null;
+let lastScoreboardHash = null;
+let lastWinsRequired = null;
+let lastIsHost = null;
 
 export const playerNodes = new Map();
 
 export function showScreen(gameStatus) {
+    if(gameStatus === lastShownStatus) return;
+    lastShownStatus = gameStatus;
+
     lobbyScreen.classList.toggle('hidden', gameStatus !== 'LOBBY');
     gameScreen.classList.toggle('hidden', gameStatus === 'LOBBY');
 
@@ -245,13 +253,22 @@ export function showReturnToLobbyError(message) {
 }
 
 export function updateMatchSettings(currentPlayer, winsRequired) {
+    const isHost = currentPlayer?.isHost === true;
+    if(winsRequired === lastWinsRequired && isHost === lastIsHost) return;
+    lastWinsRequired = winsRequired;
+    lastIsHost = isHost;
+
     winsRequiredSelect.value = String(winsRequired);
     winsRequiredSelect.disabled = currentPlayer?.isHost !== true;
 }
 
 export function updateRoundStatus(gameState) {
-    roundStatus.textContent =
-        `Round ${gameState.roundNumber} // First to ${gameState.winsRequired} wins`;
+    const text = `Round ${gameState.roundNumber} // First to ${gameState.winsRequired} wins`;
+    if(text === lastRoundStatus) return;
+
+    lastRoundStatus = text;
+    roundStatus.textContent = text;
+        
 }
 
 export function updateLobbyActions(players, currentPlayerId) {
@@ -335,6 +352,10 @@ export function updateLobbyPlayers(players) {
 }
 
 export function updateScoreboard(players, currentPlayerId) {
+    const hash = JSON.stringify(players.map(p => ({ id: p.id, score: p.score })));
+    if (hash === lastScoreboardHash) return;
+    lastScoreboardHash = hash;
+
     const activePlayers = new Set();
 
     for(const player of players) {
