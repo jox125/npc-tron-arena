@@ -22,6 +22,7 @@ import {
 } from './ui.js';
 import {
     handleGameAudio,
+    playPowerUpCue,
     preloadAudio,
     setAudioSetting,
     subscribeAudioSettings,
@@ -201,6 +202,11 @@ socket.on('QUIT_MATCH_SUCCESS', () => {
 
 socket.on('HOST_CHANGED', ({ message }) => {
     showHostChanged(message);
+});
+
+socket.on('POWERUP_AUDIO', ({ cue }) => {
+    if (!currentPlayerId) return;
+    playPowerUpCue(cue);
 });
 
 socket.on('ROOM_STATE_UPDATE', players => {

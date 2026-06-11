@@ -1,4 +1,5 @@
 import { startNewTrailSegment, gameState } from './gameEngine.js';
+import { emitPowerUpAudio } from './gameEvents.js';
 
 /**
  * Checks if a live player has collided with any solid trail segments in the arena.
@@ -43,6 +44,10 @@ export function checkTrailCollision(player, trails) {
             if (player.hasShield) {
                 // Drop the permanent shield flag
                 player.hasShield = false;
+                emitPowerUpAudio('powerup_trail_breaker_deactivate', {
+                    playerId: player.id,
+                    powerUpType: 'TRAIL_BREAKER'
+                });
 
                 // Erase the intersected trail segment array row from existence
                 trails.splice(i, 1);

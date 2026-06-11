@@ -19,10 +19,20 @@ export const AUDIO_CUES = Object.freeze({
     powerup_freeze_activate: '/assets/audio/powerup_freeze_activate.mp3',
     powerup_freeze_deactivate: '/assets/audio/powerup_freeze_deactivate.mp3',
     powerup_trail_eraser_activate: '/assets/audio/powerup_trail_eraser_activate.mp3',
-    powerup_trail_eraser_deactivate: '/assets/audio/powerup_trail_eraser_deactivate.mp3',
     powerup_trail_breaker_activate: '/assets/audio/powerup_trail_breaker_activate.mp3',
     powerup_trail_breaker_deactivate: '/assets/audio/powerup_trail_breaker_deactivate.mp3'
 });
+
+const POWER_UP_AUDIO_CUES = new Set([
+    'powerup_appears',
+    'powerup_ghost_activate',
+    'powerup_ghost_deactivate',
+    'powerup_freeze_activate',
+    'powerup_freeze_deactivate',
+    'powerup_trail_eraser_activate',
+    'powerup_trail_breaker_activate',
+    'powerup_trail_breaker_deactivate'
+]);
 
 const MUSIC_TRACK_SOURCES = Object.freeze({
     // Lobby music file location: public/assets/audio/music/lobby.mp3
@@ -169,6 +179,11 @@ export function playEliminationCue({ playerId, isLocalPlayer = false } = {}) {
 
 export function playVictoryCue({ isLocalWinner = false } = {}) {
     playSound(isLocalWinner ? 'victory' : 'defeat');
+}
+
+export function playPowerUpCue(cue) {
+    if (!POWER_UP_AUDIO_CUES.has(cue)) return;
+    playSound(cue);
 }
 
 function playNewEliminations(gameState, currentPlayerId) {
