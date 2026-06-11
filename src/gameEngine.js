@@ -31,7 +31,7 @@ export function updateGamePhysics() {
 
         player.teleported = false;
 
-        maintainPowerUpTimers(player);
+        maintainPowerUpTimers(player, gameState);
 
         // Apply continuous physics vectors
         player.x += player.dx;
@@ -63,7 +63,7 @@ export function updateGamePhysics() {
         if (!player.isAlive) return;
 
         if (checkTrailCollision(player, gameState.trails)) {
-            eliminatePlayer(player.id);
+            //eliminatePlayer(player.id);
         }
     });
 }

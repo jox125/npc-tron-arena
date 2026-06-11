@@ -389,6 +389,54 @@ input {
     text-shadow: 0 0 10px rgba(0, 217, 255, 0.45);
 }
 
+.audio-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 18px;
+}
+
+.audio-controls__label {
+    margin-right: 2px;
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.audio-toggle {
+    cursor: pointer;
+    border: 1px solid var(--cyan);
+    padding: 7px 10px;
+    color: var(--cyan-light);
+    background: rgba(0, 217, 255, 0.07);
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.audio-toggle span {
+    color: var(--cyan);
+}
+
+.audio-toggle[aria-pressed="false"] {
+    border-color: var(--muted);
+    color: var(--muted);
+    background: rgba(115, 134, 151, 0.06);
+}
+
+.audio-toggle[aria-pressed="false"] span {
+    color: #ff9caf;
+}
+
+.audio-toggle:focus-visible {
+    outline: 2px solid var(--text);
+    outline-offset: 2px;
+}
+
 .room-status {
     display: flex;
     align-items: center;
@@ -874,6 +922,31 @@ input {
     display: grid;
     gap: 12px;
     margin-top: 32px;
+}
+
+.audio-controls--overlay {
+    justify-content: center;
+    margin-top: 24px;
+}
+
+.audio-controls--overlay .audio-toggle {
+    border-color: var(--overlay-color);
+    color: var(--text);
+    background: color-mix(in srgb, var(--overlay-color) 9%, transparent);
+}
+
+.audio-controls--overlay .audio-toggle span {
+    color: var(--overlay-color);
+}
+
+.audio-controls--overlay .audio-toggle[aria-pressed="false"] {
+    border-color: var(--muted);
+    color: var(--muted);
+    background: rgba(115, 134, 151, 0.06);
+}
+
+.audio-controls--overlay .audio-toggle[aria-pressed="false"] span {
+    color: #ff9caf;
 }
 
 .menu-button {

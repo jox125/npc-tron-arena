@@ -16,6 +16,7 @@ import {
     startNewTrailSegment
 } from './src/gameEngine.js';
 import { spawnRandomPowerUp } from './src/powerUp.js';
+import { gameEvents } from './src/gameEvents.js';
 
 const COUNTDOWN_STEP_MS = 750;
 let countdownInterval = null;
@@ -26,6 +27,11 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
     cors: { origin: "*", methods: ["GET", "POST"] }
+});
+
+// Game modules emit domain events without depending directly on Socket.IO.
+gameEvents.on('powerup-audio', event => {
+    io.emit('POWERUP_AUDIO', event);
 });
 
 app.use(express.static(path.join(import.meta.dirname, 'public')));

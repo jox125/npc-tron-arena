@@ -1,6 +1,13 @@
 import { startNewTrailSegment, ARENA_WIDTH, ARENA_HEIGHT } from './gameEngine.js';
+import { emitPowerUpAudio } from './gameEvents.js';
 
 const POWER_UP_TYPES = ['GHOST', 'FREEZE', 'TRAIL_ERASER', 'TRAIL_BREAKER'];
+const POWER_UP_ACTIVATION_CUES = Object.freeze({
+    GHOST: 'powerup_ghost_activate',
+    FREEZE: 'powerup_freeze_activate',
+    TRAIL_ERASER: 'powerup_trail_eraser_activate',
+    TRAIL_BREAKER: 'powerup_trail_breaker_activate'
+});
 
 /**
  * Authoritatively spawns a random power-up entity away from bikes and trails
@@ -61,6 +68,10 @@ export function spawnRandomPowerUp(gameState) {
     };
 
     gameState.powerUps.push(newPowerUp);
+    emitPowerUpAudio('powerup_appears', {
+        powerUpId: newPowerUp.id,
+        powerUpType: newPowerUp.type
+    });
 }
 
 /**
@@ -79,6 +90,11 @@ export function processPowerUpCollection(player, gameState) {
 
             // Apply the custom functional physics overrides
             applyPowerUpEffect(player, item.type, gameState);
+            emitPowerUpAudio(getActivationCue(item.type), {
+                playerId: player.id,
+                powerUpId: item.id,
+                powerUpType: item.type
+            });
             break;
         }
     }
@@ -121,14 +137,22 @@ function applyPowerUpEffect(player, type, gameState) {
     }
 }
 
+function getActivationCue(type) {
+    return POWER_UP_ACTIVATION_CUES[type];
+}
+
 /**
  * Clears expired modifiers and returns standard physics variables back to baseline values
  */
-export function maintainPowerUpTimers(player) {
+export function maintainPowerUpTimers(player, gameState) {
     const now = Date.now();
 
     if (player.isGhost && now > player.ghostExpiresAt) {
         player.isGhost = false;
+        emitPowerUpAudio('powerup_ghost_deactivate', {
+            playerId: player.id,
+            powerUpType: 'GHOST'
+        });
     }
 
     if (player.isFrozen && now > player.freezeExpiresAt) {
@@ -136,5 +160,13 @@ export function maintainPowerUpTimers(player) {
         // Restore standard baseline engine velocities (2px back to 4px)
         if (player.dx !== 0) player.dx = Math.sign(player.dx) * 4;
         if (player.dy !== 0) player.dy = Math.sign(player.dy) * 4;
+
+        const hasActiveFreeze = Object.values(gameState.players)
+            .some(other => other.isAlive && other.isFrozen);
+        if (!hasActiveFreeze) {
+            emitPowerUpAudio('powerup_freeze_deactivate', {
+                powerUpType: 'FREEZE'
+            });
+        }
     }
 }

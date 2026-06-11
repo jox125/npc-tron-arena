@@ -34,6 +34,7 @@ const startGameMessage = document.querySelector('#start-game-message');
 const winsRequiredSelect = document.querySelector('#wins-required');
 const roundStatus = document.querySelector('#round-status');
 const systemNotice = document.querySelector('#system-notice');
+const audioToggleButtons = document.querySelectorAll('[data-audio-setting]');
 let systemNoticeTimeout = null;
 let lastShownStatus = null;
 let lastRoundStatus = null;
@@ -42,6 +43,17 @@ let lastWinsRequired = null;
 let lastIsHost = null;
 
 export const playerNodes = new Map();
+
+export function updateAudioControls(settings) {
+    audioToggleButtons.forEach(button => {
+        const setting = button.dataset.audioSetting;
+        const enabled = settings[setting] !== false;
+        const stateLabel = button.querySelector('[data-audio-state]');
+
+        button.setAttribute('aria-pressed', String(enabled));
+        if (stateLabel) stateLabel.textContent = enabled ? 'On' : 'Off';
+    });
+}
 
 export function showScreen(gameStatus) {
     if(gameStatus === lastShownStatus) return;

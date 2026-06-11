@@ -16,12 +16,16 @@ import {
     updateLobbyActions,
     updateLobbyPlayers,
     updateMatchSettings,
+    updateAudioControls,
     updateRoundStatus,
     updateScoreboard
 } from './ui.js';
 import {
     handleGameAudio,
+    playPowerUpCue,
     preloadAudio,
+    setAudioSetting,
+    subscribeAudioSettings,
     unlockAudio
 } from './audio.js';
 
@@ -43,6 +47,7 @@ const nextRoundButton = document.querySelector('#next-round-button');
 const returnToLobbyButton = document.querySelector('#return-to-lobby-button');
 const resumeGameButton = document.querySelector('#resume-game-button');
 const quitMatchButton = document.querySelector('#quit-match-button');
+const audioToggleButtons = document.querySelectorAll('[data-audio-setting]');
 let currentPlayerId = null;
 let lobbyPlayers = [];
 let currentGameStatus = 'LOBBY';
@@ -55,6 +60,16 @@ startInput(socket);
 document.addEventListener('pointerdown', unlockAudio, { once: true });
 document.addEventListener('keydown', unlockAudio, { once: true });
 preloadAudio();
+
+// Lobby and pause menu controls share one persisted audio settings state.
+subscribeAudioSettings(updateAudioControls);
+audioToggleButtons.forEach(button => {
+    button.addEventListener('click', () => {
+        const setting = button.dataset.audioSetting;
+        const enabled = button.getAttribute('aria-pressed') !== 'true';
+        setAudioSetting(setting, enabled);
+    });
+});
 
 document.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape' || event.repeat) {
@@ -187,6 +202,11 @@ socket.on('QUIT_MATCH_SUCCESS', () => {
 
 socket.on('HOST_CHANGED', ({ message }) => {
     showHostChanged(message);
+});
+
+socket.on('POWERUP_AUDIO', ({ cue }) => {
+    if (!currentPlayerId) return;
+    playPowerUpCue(cue);
 });
 
 socket.on('ROOM_STATE_UPDATE', players => {
