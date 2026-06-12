@@ -17,6 +17,7 @@ import {
     updateLobbyPlayers,
     updateMatchSettings,
     updateAudioControls,
+    updateGameTimer,
     updateRoundStatus,
     updateScoreboard
 } from './ui.js';
@@ -225,6 +226,7 @@ socket.on('GAME_STATE_UPDATE', gameState => {
     currentWinsRequired = gameState.winsRequired;
 
     updateMatchSettings(currentPlayer, gameState.winsRequired);
+    updateGameTimer(gameState);
     updateRoundStatus(gameState);
     updateScoreboard(players, currentPlayerId);
     handleGameAudio(gameState, state.current, currentPlayerId);

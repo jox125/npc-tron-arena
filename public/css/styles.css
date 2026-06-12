@@ -484,7 +484,8 @@ input {
     text-transform: uppercase;
 }
 
-.player-identity {
+.player-identity,
+.game-timer {
     margin: 0 0 28px;
     border: 1px solid var(--identity-color);
     border-left-width: 4px;
@@ -495,7 +496,8 @@ input {
         0 0 14px color-mix(in srgb, var(--identity-color) 18%, transparent);
 }
 
-.player-identity__label {
+.player-identity__label,
+.game-timer__label {
     margin: 0 0 4px;
     color: var(--muted);
     font-size: 0.7rem;
@@ -504,7 +506,8 @@ input {
     text-transform: uppercase;
 }
 
-.player-identity__number {
+.player-identity__number,
+.game-timer__number {
     margin: 0;
     color: var(--identity-color);
     font-size: 2.4rem;
@@ -1045,6 +1048,14 @@ input {
     font-weight: 750;
     letter-spacing: 0.08em;
     text-transform: uppercase;
+}
+
+.result-view__time {
+    margin: 22px 0 0;
+    color: var(--overlay-color);
+    font-size: clamp(1rem, 2.5vw, 1.35rem);
+    font-weight: 750;
+    letter-spacing: 0.08em;
 }
 
 .overlay-panel__hint {

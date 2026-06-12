@@ -11,6 +11,10 @@ export let gameState = {
     pausedBy: null,
     systemNotice: null,
     roundNumber: 1,
+    roundStartedAt: null,
+    roundPausedAt: null,
+    roundPausedDurationMs: 0,
+    roundElapsedMs: 0,
     winsRequired: 3,
     matchWinnerId: null,
     roundResult: null,
@@ -132,6 +136,7 @@ export function finishRound(winnerId, eliminationOrder = []) {
     gameState.roundResult = {
         winnerId,
         roundNumber: gameState.roundNumber,
+        durationMs: gameState.roundElapsedMs,
         winsRequired: gameState.winsRequired,
         isMatchOver: gameState.matchWinnerId !== null,
         rankings: [...rankedIds, ...unrankedIds].map((id, index) => {
@@ -160,6 +165,10 @@ export function prepareNextRound() {
     // Clear round-only state while preserving each player's match score.
     gameState.roundNumber++;
     gameState.timer = 0;
+    gameState.roundStartedAt = null;
+    gameState.roundPausedAt = null;
+    gameState.roundPausedDurationMs = 0;
+    gameState.roundElapsedMs = 0;
     gameState.pausedBy = null;
     gameState.systemNotice = null;
     gameState.roundResult = null;
@@ -183,6 +192,10 @@ export function prepareNextRound() {
 export function resetGameToLobby() {
     gameState.gameStatus = "LOBBY";
     gameState.timer = 0;
+    gameState.roundStartedAt = null;
+    gameState.roundPausedAt = null;
+    gameState.roundPausedDurationMs = 0;
+    gameState.roundElapsedMs = 0;
     gameState.pausedBy = null;
     gameState.systemNotice = null;
     gameState.roundResult = null;

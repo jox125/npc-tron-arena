@@ -19,6 +19,7 @@ const roundResultContent = document.querySelector('#round-result-content');
 const roundResultLabel = document.querySelector('#round-result-label');
 const roundResultTitle = document.querySelector('#round-result-title');
 const roundWinner = document.querySelector('#round-winner');
+const roundTime = document.querySelector('#round-time');
 const roundRankings = document.querySelector('#round-rankings');
 const nextRoundButton = document.querySelector('#next-round-button');
 const returnToLobbyButton = document.querySelector('#return-to-lobby-button');
@@ -33,6 +34,7 @@ const leaveLobbyButton = document.querySelector('#leave-lobby-button');
 const startGameMessage = document.querySelector('#start-game-message');
 const winsRequiredSelect = document.querySelector('#wins-required');
 const roundStatus = document.querySelector('#round-status');
+const gameTimerNumber = document.querySelector('#game-timer-number');
 const systemNotice = document.querySelector('#system-notice');
 const audioToggleButtons = document.querySelectorAll('[data-audio-setting]');
 let systemNoticeTimeout = null;
@@ -42,6 +44,7 @@ let lastScoreboardHash = null;
 let lastWinsRequired = null;
 let lastIsHost = null;
 let lastCountdownTimer = null;
+let lastGameTimerText = null;
 
 export const playerNodes = new Map();
 
@@ -217,6 +220,9 @@ export function renderRoundResult(gameState, players, currentPlayerId) {
         : winner
             ? `P${winner.playerNumber} secured the grid`
             : roundResult ? 'No light cycle survived' : 'Waiting for the final standings';
+    roundTime.textContent = roundResult
+        ? `Round time // ${formatDuration(roundResult.durationMs)}`
+        : '';
 
     const accentPlayer = matchWinner ?? winner;
     if (accentPlayer?.color) {
@@ -290,6 +296,26 @@ export function updateRoundStatus(gameState) {
     lastRoundStatus = text;
     roundStatus.textContent = text;
         
+}
+
+export function updateGameTimer(gameState) {
+    const elapsedMs = gameState.gameStatus === 'GAME_OVER'
+        ? gameState.roundResult?.durationMs
+        : gameState.roundElapsedMs;
+    const text = formatDuration(elapsedMs);
+
+    if (text === lastGameTimerText) return;
+
+    lastGameTimerText = text;
+    gameTimerNumber.textContent = text;
+}
+
+function formatDuration(durationMs = 0) {
+    const totalSeconds = Math.floor(Math.max(0, durationMs ?? 0) / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
 export function updateLobbyActions(players, currentPlayerId) {
