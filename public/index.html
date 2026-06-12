@@ -114,6 +114,10 @@
 
     <section id="game-screen" class="screen hidden">
         <aside id="scoreboard" aria-label="Scoreboard">
+            <section id="game-timer" class="game-timer" aria-label="Game timer">
+                <p class="game-timer__label">Time</p>
+                <p id="game-timer-number" class="game-timer__number">00:00</p>
+            </section>
             <section id="player-identity" class="player-identity" aria-label="Your player">
                 <p class="player-identity__label">You are</p>
                 <p id="player-identity-number" class="player-identity__number">P?</p>
@@ -191,6 +195,7 @@
             <p id="round-result-label" class="overlay-panel__eyebrow">Round complete</p>
             <h2 id="round-result-title">Round results</h2>
             <p id="round-winner" class="result-view__winner"></p>
+            <p id="round-time" class="result-view__time"></p>
             <ol id="round-rankings" class="result-rankings"></ol>
             <div class="result-view__actions">
                 <button id="next-round-button" class="neon-button hidden" type="button">

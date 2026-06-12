@@ -155,6 +155,7 @@ io.on('connection', (socket) => {
         const player = gameState.players[socket.id];
         if (!player || gameState.gameStatus !== "PLAYING") return;
 
+        pauseRoundTimer();
         gameState.gameStatus = "PAUSED";
         gameState.pausedBy = getPlayerIdentity(player);
         setSystemNotice(
@@ -169,6 +170,7 @@ io.on('connection', (socket) => {
         const player = gameState.players[socket.id];
         if (!player || gameState.gameStatus !== "PAUSED") return;
 
+        resumeRoundTimer();
         gameState.gameStatus = "PLAYING";
         gameState.pausedBy = null;
         setSystemNotice(
@@ -311,6 +313,7 @@ io.on('connection', (socket) => {
 const TICK_RATE = 30;
 setInterval(() => {
     if (gameState.gameStatus !== "PLAYING") return;
+    updateRoundElapsedTime();
     updateGamePhysics();
     resolveRoundEnd();
     io.emit('GAME_STATE_UPDATE', gameState);
@@ -329,6 +332,7 @@ function resolveRoundEnd() {
     const alivePlayers = players.filter(player => player.isAlive);
     if (alivePlayers.length > 1) return false;
 
+    updateRoundElapsedTime();
     return finishRound(alivePlayers[0]?.id ?? null, gameState.eliminationOrder);
 }
 
@@ -339,6 +343,10 @@ function startRoundCountdown() {
 
     gameState.gameStatus = "COUNTDOWN";
     gameState.timer = 3;
+    gameState.roundStartedAt = null;
+    gameState.roundPausedAt = null;
+    gameState.roundPausedDurationMs = 0;
+    gameState.roundElapsedMs = 0;
     gameState.pausedBy = null;
     gameState.roundResult = null;
     gameState.eliminationOrder = [];
@@ -361,6 +369,8 @@ function startRoundCountdown() {
             countdownInterval = null;
             gameState.gameStatus = "PLAYING";
             gameState.powerUps = [];
+            gameState.roundStartedAt = Date.now();
+            gameState.roundElapsedMs = 0;
 
             Object.values(gameState.players).forEach(player => {
                 setPlayerStartPosition(player);
@@ -393,6 +403,29 @@ function removePlayerFromMatch(playerId) {
     resolveRoundEnd();
     delete gameState.players[playerId];
     ensureHost();
+}
+
+function updateRoundElapsedTime(now = Date.now()) {
+    if (gameState.roundStartedAt === null) return;
+
+    const endTime = gameState.roundPausedAt ?? now;
+    gameState.roundElapsedMs = Math.max(
+        0,
+        endTime - gameState.roundStartedAt - gameState.roundPausedDurationMs
+    );
+}
+
+function pauseRoundTimer() {
+    const now = Date.now();
+    updateRoundElapsedTime(now);
+    gameState.roundPausedAt = now;
+}
+
+function resumeRoundTimer() {
+    if (gameState.roundPausedAt === null) return;
+
+    gameState.roundPausedDurationMs += Date.now() - gameState.roundPausedAt;
+    gameState.roundPausedAt = null;
 }
 
 function getPlayerIdentity(player) {
