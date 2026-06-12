@@ -96,10 +96,8 @@ function renderPlayers(prev, curr, t) {
 }
 
 function renderTrails(prev, curr, t) {
-    const currTrails = curr.trails;
-    const prevTrails = new Map(prev.trails.map(s => [s.id, s]));
-
-    cleanupTrails();
+    const currTrails = curr.trails || [];
+    const prevTrails = new Map((prev.trails || []).map(s => [s.id, s]));
 
     for(const seg of currTrails) {
         let el = trailElements[seg.id];
@@ -137,12 +135,18 @@ function renderTrails(prev, curr, t) {
         el.style.width  = w + "px";
         el.style.height = h + "px";
     }
+
+    cleanupTrails(currTrails);
 }
 
-function cleanupTrails() {
+function cleanupTrails(currentTrails = []) {
+    const activeTrailIds = new Set(currentTrails.map(trail => trail.id));
+
     for(const id in trailElements) {
-        trailElements[id].remove();
-        delete trailElements[id];
+        if(!activeTrailIds.has(id)) {
+            trailElements[id].remove();
+            delete trailElements[id];
+        }
     }
 }
 
