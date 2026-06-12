@@ -41,6 +41,7 @@ let lastRoundStatus = null;
 let lastScoreboardHash = null;
 let lastWinsRequired = null;
 let lastIsHost = null;
+let lastCountdownTimer = null;
 
 export const playerNodes = new Map();
 
@@ -74,6 +75,11 @@ export function showScreen(gameStatus) {
     countdownContent.classList.toggle('hidden', gameStatus !== 'COUNTDOWN');
     pausedContent.classList.toggle('hidden', gameStatus !== 'PAUSED');
     roundResultContent.classList.toggle('hidden', gameStatus !== 'GAME_OVER');
+
+    if (gameStatus !== 'COUNTDOWN') {
+        countdownCycle.classList.remove('is-riding');
+        lastCountdownTimer = null;
+    }
 }
 
 export function showJoinMessage(message, type = 'error') {
@@ -121,18 +127,21 @@ export function renderCountdown(timer, player) {
     countdownNumber.textContent = isLaunch ? '' : String(timer);
     countdownNumber.classList.toggle('hidden', isLaunch);
     countdownNumber.classList.remove('is-ticking');
-    countdownCycle.classList.remove('is-riding');
 
-    if (isLaunch) {
-        // Force a reflow so the launch animation restarts for each round.
+    if (timer === 3 && lastCountdownTimer !== 3) {
+        countdownCycle.classList.remove('is-riding');
+        // Force a reflow so the full countdown ride restarts for each round.
         void countdownCycle.offsetWidth;
         countdownCycle.classList.add('is-riding');
-        return;
     }
 
-    // Force a reflow so the number animation restarts for every countdown tick.
-    void countdownNumber.offsetWidth;
-    countdownNumber.classList.add('is-ticking');
+    if (!isLaunch) {
+        // Force a reflow so the number animation restarts for every countdown tick.
+        void countdownNumber.offsetWidth;
+        countdownNumber.classList.add('is-ticking');
+    }
+
+    lastCountdownTimer = timer;
 }
 
 export function renderPaused(pauser, currentPlayer) {

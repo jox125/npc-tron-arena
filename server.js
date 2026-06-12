@@ -353,7 +353,7 @@ function startRoundCountdown() {
     });
     io.emit('GAME_STATE_UPDATE', gameState);
 
-    // Four phases: 3, 2, 1, then the cycle launch animation.
+    // Four phases: 3, 2, 1, then transition into active play.
     countdownInterval = setInterval(() => {
         gameState.timer--;
         if (gameState.timer < 0) {
