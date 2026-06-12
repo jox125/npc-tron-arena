@@ -7,20 +7,20 @@ const DEFAULT_AUDIO_SETTINGS = Object.freeze({
 });
 
 export const AUDIO_CUES = Object.freeze({
-    countdown: '/assets/audio/beep.mp3',
-    countdownFinal: '/assets/audio/beep_high.mp3',
-    roundStart: '/assets/audio/electric.mp3',
-    elimination: '/assets/audio/elimination.mp3',
-    victory: '/assets/audio/victory.mp3',
-    defeat: '/assets/audio/defeat.mp3',
-    powerup_appears: '/assets/audio/powerup_appears.mp3',
-    powerup_ghost_activate: '/assets/audio/powerup_ghost_activate.mp3',
-    powerup_ghost_deactivate: '/assets/audio/powerup_ghost_deactivate.mp3',
-    powerup_freeze_activate: '/assets/audio/powerup_freeze_activate.mp3',
-    powerup_freeze_deactivate: '/assets/audio/powerup_freeze_deactivate.mp3',
-    powerup_trail_eraser_activate: '/assets/audio/powerup_trail_eraser_activate.mp3',
-    powerup_trail_breaker_activate: '/assets/audio/powerup_trail_breaker_activate.mp3',
-    powerup_trail_breaker_deactivate: '/assets/audio/powerup_trail_breaker_deactivate.mp3'
+    countdown: '/assets/audio/sfx/beep.mp3',
+    countdownFinal: '/assets/audio/sfx/beep_high.mp3',
+    cycleRide: '/assets/audio/sfx/electric.mp3',
+    elimination: '/assets/audio/sfx/elimination.mp3',
+    victory: '/assets/audio/sfx/victory.mp3',
+    defeat: '/assets/audio/sfx/defeat.mp3',
+    powerup_appears: '/assets/audio/sfx/powerup_appears.mp3',
+    powerup_ghost_activate: '/assets/audio/sfx/powerup_ghost_activate.mp3',
+    powerup_ghost_deactivate: '/assets/audio/sfx/powerup_ghost_deactivate.mp3',
+    powerup_freeze_activate: '/assets/audio/sfx/powerup_freeze_activate.mp3',
+    powerup_freeze_deactivate: '/assets/audio/sfx/powerup_freeze_deactivate.mp3',
+    powerup_trail_eraser_activate: '/assets/audio/sfx/powerup_trail_eraser_activate.mp3',
+    powerup_trail_breaker_activate: '/assets/audio/sfx/powerup_trail_breaker_activate.mp3',
+    powerup_trail_breaker_deactivate: '/assets/audio/sfx/powerup_trail_breaker_deactivate.mp3'
 });
 
 const POWER_UP_AUDIO_CUES = new Set([
@@ -151,12 +151,16 @@ export function playCountdownCue(value) {
 
     lastCountdownValue = value;
 
+    if (value === 3) {
+        playSound('cycleRide');
+        playSound('countdown');
+        return;
+    }
+
     if (value > 1) {
         playSound('countdown');
     } else if (value === 1) {
         playSound('countdownFinal');
-    } else {
-        playSound('roundStart');
     }
 }
 
@@ -305,7 +309,7 @@ function saveAudioSettings() {
 
 function getCueVolume(name) {
     if (name === 'victory' || name === 'defeat') return 0.60;
-    if (name === 'roundStart') return 0.54;
+    if (name === 'cycleRide') return 0.54;
     if (name === 'elimination') return 0.49;
     return 0.60;
 }
