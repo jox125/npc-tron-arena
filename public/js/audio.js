@@ -249,8 +249,17 @@ function playSound(name, { rate = 1 } = {}) {
 }
 
 function updateMusicScene(gameStatus) {
-    // Countdown, active play, pause and results all use the in-game track.
-    const nextScene = gameStatus === 'LOBBY' ? 'lobby' : 'game';
+    // Active play, pause and results all use the in-game track.
+    let nextScene;
+
+    if (gameStatus === 'PLAYING' || gameStatus === 'PAUSED') {
+        nextScene = 'game'; // Play match music
+    } else if (gameStatus === 'LOBBY') {
+        nextScene = 'lobby'; // Play lobby music
+    } else {
+        // For 'COUNTDOWN' and 'GAME_OVER', set to null so no music track plays!
+        nextScene = null;
+    }
     if (nextScene === activeMusicScene) return;
 
     Object.values(musicTracks).forEach(track => track.stop());
