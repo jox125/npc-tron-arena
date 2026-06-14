@@ -1,448 +1,56 @@
-import { state } from './client.js';
-import { playerNodes } from './ui.js';
+import { renderState } from './client/state.js';
+import {
+    cleanupAllPlayers,
+    renderPlayers,
+    updatePlayerStatusBars
+} from './render/playerView.js';
+import {
+    cleanupTrails,
+    renderTrails
+} from './render/trailView.js';
+import {
+    cleanupPowerUps,
+    renderPowerUps
+} from './render/powerUpView.js';
+import {
+    cleanupIndicators,
+    renderWrapIndicators
+} from './render/wrapIndicatorView.js';
+import { SERVER_TICK_MS } from './render/renderConfig.js';
 
-const SERVER_TICK_MS = 1000 / 30;           // 33.3ms
-const PLAYER_SIZE = 10;                     // 10px player
-const PLAYER_OFFSET = PLAYER_SIZE / 2;      // converts top-left positioning to center-based positioning
-const PLAYER_IMG_X = 21;                    // Player sprite size_x
-const PLAYER_IMG_Y = 41;                    // Player sprite size_y
-const TRAIL_THICKNESS = 5;                  // matches backend collision
-const TRAIL_OFFSET = TRAIL_THICKNESS / 2;   // converts top-left positioning to center-based positioning
-const ARENA_SIZE = 800;
-const INDICATOR_RANGE = 70;
-const INDICATOR_LONG_SIDE = 120;
-const INDICATOR_SHORT_SIDE = 25;
-const POWER_UP_ICONS = {
-    GHOST:         '👻',
-    FREEZE:        '❄️',
-    TRAIL_ERASER:  '🧹',
-    TRAIL_BREAKER: '⚡',
-};
-
-const arena = document.querySelector('#arena');
-
-const playerElements = {};  // { socketId: <div> }
-const playerImages = {};    // { socketId: <img> }
-const trailElements = {};   // { segmentId: <div> }
-const wrapIndicators = {};  // { playerId: <div> }
-const powerUpElements = {}; // { powerUpId: <div> }
-
-// --- MAIN LOOP ---
-
+/**
+ * Coordinates the visual modules once per browser animation frame.
+ *
+ * The server updates at 30 FPS. Interpolation fills the visual gap between
+ * those updates so movement still appears smooth on a 60 FPS display.
+ */
 function gameLoop(now) {
     requestAnimationFrame(gameLoop);
-    const curr = state.current;
-    const prev = state.previous;
-    
-    // Nothing to render
-    if(!curr || !prev) return;
 
-    // Only render player movement when playing
-    // And cleanup if needed
-    if(curr.gameStatus !== 'PLAYING') {
-        if(Object.keys(trailElements).length > 0) cleanupTrails();
-        if(Object.keys(playerElements).length > 0) cleanupAllPlayers();
-        if(Object.keys(wrapIndicators).length > 0) cleanupIndicators();
-        if(Object.keys(powerUpElements).length > 0) cleanupPowerups();
+    const currentState = renderState.current;
+    const previousState = renderState.previous;
+    if (!currentState || !previousState) return;
+
+    if (currentState.gameStatus !== 'PLAYING') {
+        cleanupTrails();
+        cleanupAllPlayers();
+        cleanupIndicators();
+        cleanupPowerUps();
         return;
     }
 
-    // Normalized time factor (0-1)
-    const t = Math.min((now - state.lastUpdate) / SERVER_TICK_MS, 1);
-    renderPlayers(prev, curr, t);
-    renderTrails(prev, curr, t);
-    renderWrapIndicators(curr);
-    renderPowerUps(curr);
-    updatePlayerStatusBars(curr.players);
+    const progress = Math.min(
+        (now - renderState.lastUpdate) / SERVER_TICK_MS,
+        1
+    );
+
+    renderPlayers(previousState, currentState, progress);
+    renderTrails(previousState, currentState, progress);
+    renderWrapIndicators(currentState);
+    renderPowerUps(currentState);
+    updatePlayerStatusBars(currentState.players);
 }
 
-function startLoop() {
+export function startLoop() {
     requestAnimationFrame(gameLoop);
 }
-
-// --- RENDER FUNCTIONS ---
-
-function renderPlayers(prev, curr, t) {
-    const prevPlayers = prev.players || {};
-    const currPlayers = curr.players || {};
-    const canInterpolate = prev.gameStatus === 'PLAYING';
-
-    cleanupPlayers(currPlayers);
-
-    for(const [id, player] of Object.entries(currPlayers)) {
-        const prevPlayer = prevPlayers[id];
-        
-        // Interpolate player position
-        const x = (canInterpolate && prevPlayer && !player.teleported)
-            ? lerp(prevPlayer.x, player.x, t) - PLAYER_OFFSET
-            : player.x - PLAYER_OFFSET;
-
-        const y = (canInterpolate && prevPlayer && !player.teleported)
-            ? lerp(prevPlayer.y, player.y, t) - PLAYER_OFFSET
-            : player.y - PLAYER_OFFSET;
-
-        
-        // Player sprite rotation
-        let angle = -90;
-        if (player.dx > 0) angle = -90;
-        if (player.dx < 0) angle = 90;
-        if (player.dy > 0) angle = 0;
-        if (player.dy < 0) angle = 180;
-
-        const div = getOrCreatePlayerDiv(id, player.color);
-
-        div.style.transform = `translate3d(${x}px, ${y}px, 0) rotate(${angle}deg)`;
-    }
-}
-
-function renderTrails(prev, curr, t) {
-    const currTrails = curr.trails || [];
-    const prevTrails = new Map((prev.trails || []).map(s => [s.id, s]));
-
-    for(const seg of currTrails) {
-        let el = trailElements[seg.id];
-
-        // Spawn new div if this is a new trail ID
-        if(!el) {
-            el = document.createElement('div');
-            el.classList.add('trail-segment');
-            el.style.cssText = `
-                position: absolute;
-                background-color: ${seg.color};
-                box-shadow: 0 0 4px ${seg.color}, 0 0 16px ${seg.color};
-                will-change: transform;
-                z-index: 1;
-            `;            
-            arena.appendChild(el);
-            trailElements[seg.id] = el;
-        }
-
-        // Interpolate trail position
-        const p = prevTrails.get(seg.id) || seg;
-
-        const x1 = lerp(p.x1, seg.x1, t);
-        const y1 = lerp(p.y1, seg.y1, t);
-        const x2 = lerp(p.x2, seg.x2, t);
-        const y2 = lerp(p.y2, seg.y2, t);
-        
-        // Update trail position
-        const x = Math.min(x1, x2) - TRAIL_OFFSET;
-        const y = Math.min(y1, y2) - TRAIL_OFFSET;
-        const w = Math.abs(x2 - x1) + TRAIL_THICKNESS;
-        const h = Math.abs(y2 - y1) + TRAIL_THICKNESS;
-
-        el.style.transform = `translate3d(${x}px, ${y}px, 0)`;
-        el.style.width  = w + "px";
-        el.style.height = h + "px";
-    }
-
-    cleanupTrails(currTrails);
-}
-
-function cleanupTrails(currentTrails = []) {
-    const activeTrailIds = new Set(currentTrails.map(trail => trail.id));
-
-    for(const id in trailElements) {
-        if(!activeTrailIds.has(id)) {
-            trailElements[id].remove();
-            delete trailElements[id];
-        }
-    }
-}
-
-// --- POWERUPS ---
-
-function renderPowerUps(curr) {
-    const alive = new Set(curr.powerUps.map(p => p.id));
-
-    // create/update powerups
-    for(const p of curr.powerUps) {
-        let el = powerUpElements[p.id];
-
-        if(!el) {
-            el = document.createElement('div');
-            el.dataset.id = p.id;
-            el.classList.add('powerup');
-            el.textContent = POWER_UP_ICONS[p.type];
-            el.style.cssText = `
-                font-size: ${p.radius * 2}px;
-                left: ${p.x}px;
-                top: ${p.y}px;
-            `;
-            arena.appendChild(el);
-            powerUpElements[p.id] = el;
-        }
-    }
-
-    // Remove used powerups
-    for(const id in powerUpElements) {
-        if(!alive.has(id)) removePowerUp(id);
-    }
-}
-
-function updatePlayerStatusBars(players) {
-    const now = Date.now();
-
-    for(const [id, player] of Object.entries(players)) {
-        const item = playerNodes.get(id);
-        if(!item) continue;
-
-        const statusContainer = item.querySelector(`#status-${id}`);
-        const playerDiv = getOrCreatePlayerDiv(id, player.color);
-
-        // Ghost
-        updateStatusIcon(
-            statusContainer,
-            `ghost-${id}`,
-            POWER_UP_ICONS.GHOST,
-            player.isGhost && player.ghostExpiresAt
-        );
-
-        if(player.isGhost && player.ghostExpiresAt) {
-            playerDiv.style.opacity = 0.4;
-        } else {
-            playerDiv.style.opacity = 1;
-        }
-
-        // Freeze
-        updateStatusIcon(
-            statusContainer,
-            `freeze-${id}`,
-            POWER_UP_ICONS.FREEZE,
-            player.isFrozen && player.freezeExpiresAt
-        );
-
-        if(player.isFrozen && player.freezeExpiresAt) {
-            playerDiv.style.filter = 'brightness(1) sepia(1) hue-rotate(180deg)';
-        } else {
-            playerDiv.style.filter = 'none';
-        }
-
-        // Trail breaker
-        updateStatusIcon(
-            statusContainer,
-            `shield-${id}`,
-            POWER_UP_ICONS.TRAIL_BREAKER,
-            player.hasShield
-        );
-    }
-}
-
-function createPowerUpIcon(playerId, icon) {
-    const el = document.createElement('span');
-    el.className = 'status-icon';
-    el.textContent = icon;
-    return el;
-}
-
-function updateStatusIcon(parent, iconId, iconText, active) {
-    let el = parent.querySelector(`#${iconId}`);
-
-    if(active) {
-        if(!el) {
-            el = document.createElement('span');
-            el.id = iconId;
-            el.className = 'status-icon';
-            el.textContent = iconText;
-
-            parent.appendChild(el);
-        }
-    } else {
-        el?.remove();
-    }
-}
-
-function removePowerUp(id) {
-    if(!powerUpElements[id]) return;
-    powerUpElements[id].remove();
-    delete powerUpElements[id];
-}
-
-function cleanupPowerups() {
-    for(const id in powerUpElements) {
-        removePowerUp(id);
-    }
-}
-
-// --- WRAP INDICATORS ---
-
-function renderWrapIndicators(curr) {
-    const players = curr.players || {};
-
-    for(const [id, player] of Object.entries(players)) {
-        let el = wrapIndicators[id];
-
-        if(!el) {
-            el = document.createElement('div');
-            el.classList.add('wrap-indicator');
-            arena.appendChild(el);
-            wrapIndicators[id] = el;
-        }
-
-        // Find distance to edge
-        const distLeft = player.x;
-        const distTop = player.y;
-        const distRight = ARENA_SIZE - player.x;
-        const distBottom = ARENA_SIZE - player.y;
-
-        const minDist = Math.min(distLeft, distRight, distTop, distBottom);
-        
-        if(minDist > INDICATOR_RANGE) el.style.opacity = 0;
-
-        const intensity = 1 - (minDist / INDICATOR_RANGE);
-        const rgbColor = hexToRgb(player.color);
-
-        let x = 0;
-        let y = 0;
-        let w = 0;
-        let h = 0;
-        let gradient = "";
-
-        // Center indicator on player
-        let x_offset = player.x - 50;
-        let y_offset = player.y - 50;
-        
-        // Opposite edge warning
-        if(minDist === distLeft) {
-            x = ARENA_SIZE - INDICATOR_SHORT_SIDE;
-            y = y_offset;
-            w = INDICATOR_SHORT_SIDE;
-            h = INDICATOR_LONG_SIDE;
-            gradient = `linear-gradient(to left, rgba(${rgbColor}, 0.3), transparent)`;
-        } else if(minDist === distRight) {
-            x = 0;
-            y = y_offset;
-            w = INDICATOR_SHORT_SIDE;
-            h = INDICATOR_LONG_SIDE;
-            gradient = `linear-gradient(to right, rgba(${rgbColor}, 0.3), transparent)`;
-        } else if(minDist === distTop) {
-            x = x_offset;
-            y = ARENA_SIZE - INDICATOR_SHORT_SIDE;
-            w = INDICATOR_LONG_SIDE;
-            h = INDICATOR_SHORT_SIDE;
-            gradient = `linear-gradient(to top, rgba(${rgbColor}, 0.3), transparent)`;
-        } else {
-            x = x_offset;
-            y = 0;
-            w = INDICATOR_LONG_SIDE;
-            h = INDICATOR_SHORT_SIDE;
-            gradient = `linear-gradient(to bottom, rgba(${rgbColor}, 0.3), transparent)`;
-        }
-
-        el.style.cssText = `
-            width: ${w}px;
-            height: ${h}px;
-            left: ${x}px;
-            top: ${y}px;
-            opacity: ${intensity};
-            background: ${gradient};
-        `;
-    }
-
-    cleanupIndicators(players);
-}
-
-function cleanupIndicators(currentPlayers = {}) {
-    for (const id in wrapIndicators) {
-        if (!currentPlayers[id]) {
-            wrapIndicators[id].remove();
-            delete wrapIndicators[id];
-        }
-    }
-}
-
-// --- PLAYER DIV MANAGEMENT ---
-
-function getOrCreatePlayerDiv(id, color) {
-    if(playerElements[id]) return playerElements[id];
-
-    const div = document.createElement('div');
-    div.classList.add('player-vehicle');
-    div.style.cssText = `
-        position: absolute;
-        width: ${PLAYER_SIZE}px;
-        height: ${PLAYER_SIZE}px;
-        will-change: transform;
-        z-index: 2;
-    `;
-    arena.appendChild(div);
-    playerElements[id] = div;
-    
-    getOrCreatePlayerImage(id, color);
-
-    return div;
-}
-
-
-function getOrCreatePlayerImage(id, color) {
-    if(playerImages[id]) return playerImages[id];
-
-    const img = document.createElement('div');
-    const div = getOrCreatePlayerDiv(id, color);
-    img.classList.add('player-image');
-
-    if(color === '#00d9ff') img.classList.add('player-vehicle--blue');
-    else if(color === '#ff3f68') img.classList.add('player-vehicle--red');
-    else if(color === '#29ff9a') img.classList.add('player-vehicle--green');
-    else if(color === '#ffb000') img.classList.add('player-vehicle--yellow');
-
-    img.style.cssText = `
-        position: absolute;
-        width: ${PLAYER_IMG_X}px;
-        height: ${PLAYER_IMG_Y}px;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        transform-origin: center;
-        will-change: transform;
-        image-rendering: pixelated;
-    `;
-
-    div.appendChild(img);
-    playerImages[id] = img;
-
-    return img;
-}
-
-function removePlayerDiv(id) {
-    if(!playerElements[id]) return;
-    playerElements[id].remove();
-    delete playerElements[id];
-    
-    if(!playerImages[id]) return;
-    playerImages[id].remove();
-    delete playerImages[id];
-}
-
-function cleanupPlayers(currentPlayers) {
-    for(const id in playerElements) {
-        if(!currentPlayers[id]) {
-            removePlayerDiv(id);
-        }
-    }
-}
-
-function cleanupAllPlayers() {
-    for(const id in playerElements) {
-        removePlayerDiv(id);
-    }
-}
-
-// Interpolation helper
-function lerp(a, b, t) {
-    return a + (b - a) * t;
-}
-
-function hexToRgb(hex) {
-    hex = hex.replace('#', '');
-
-    const bigint = parseInt(hex, 16);
-
-    const r = (bigint >> 16) & 255;
-    const g = (bigint >> 8) & 255;
-    const b = bigint & 255;
-
-    return `${r}, ${g}, ${b}`;
-}
-
-export { startLoop };

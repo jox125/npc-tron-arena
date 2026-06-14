@@ -1,11 +1,11 @@
-import { state } from './client.js';
+import { renderState } from './client/state.js';
 
 const GAME_KEYS = new Set(['ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight', 'w', 'a', 's', 'd']);
 
 export function startInput(socket) {
     document.addEventListener('keydown', (event) => {
         if (event.repeat) return;
-        if (state.current.gameStatus !== 'PLAYING') return;
+        if (renderState.current.gameStatus !== 'PLAYING') return;
 
         // Prevent default behaviour only on game keys
         // So F5, Ctrl+R, etc. still work

@@ -1,3 +1,4 @@
+/* Shared design tokens and page-wide defaults. */
 :root {
     color-scheme: dark;
     --background: #02050a;
@@ -46,6 +47,7 @@ input {
     display: none !important;
 }
 
+/* Lobby layout, join form and host controls. */
 .lobby-screen {
     display: grid;
     place-items: center;
@@ -456,6 +458,7 @@ input {
     box-shadow: 0 0 10px #29ff9a;
 }
 
+/* Active game layout: scoreboard, player identity and arena. */
 #game-screen {
     grid-template-columns: 240px 800px;
     justify-content: center;
@@ -550,6 +553,7 @@ input {
     transition: outline-color 180ms ease, box-shadow 180ms ease;
 }
 
+/* Full-screen overlays used by countdown, pause and results. */
 .overlay {
     --overlay-color: var(--cyan);
 
@@ -649,6 +653,7 @@ input {
     justify-items: center;
 }
 
+/* Countdown light-cycle illustration and its individual parts. */
 .countdown__player {
     margin: 0;
     color: var(--overlay-color);
@@ -995,6 +1000,7 @@ input {
     clip-path: polygon(0 0, calc(100% - 28px) 0, 100% 28px, 100% 100%, 28px 100%, 0 calc(100% - 28px));
 }
 
+/* Pause and result panels, rankings and action buttons. */
 .result-view.is-personal-win {
     animation: winner-panel-flash 1.8s ease-out both;
 }
@@ -1222,6 +1228,7 @@ input {
     color: var(--danger);
 }
 
+/* Animation definitions are kept together for easier timing changes. */
 @keyframes countdown-arrive {
     0% {
         opacity: 0;
@@ -1305,6 +1312,7 @@ input {
     }
 }
 
+/* Accessibility and narrow-screen adjustments. */
 @media (prefers-reduced-motion: reduce) {
     .overlay::before,
     .countdown__number.is-ticking,

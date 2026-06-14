@@ -1,5 +1,8 @@
 # Light Cycle Arena — Game Specification
 
+> Koodi ülesehituse ja andmevoo selgitus:
+> [docs/Architecture.md](docs/Architecture.md)
+
 ## 1. Features
 
 * **Real-Time Multiplayer:** Supports 2 to 4 players simultaneously over the internet.

@@ -1,5 +1,11 @@
 # NPC single-player režiimi teostusplaan
 
+> **Refaktori järel:** serveri Socket.IO loogika asub `src/server/` kaustas,
+> kliendi vastutused `public/js/client/`, `public/js/ui/`, `public/js/render/`
+> ja `public/js/audio/` kaustades. Täpne failikaart ja andmevoog on failis
+> `docs/Architecture.md`. Allolevate etappide juures eelista uut vastutuse
+> järgi jaotatud faili, mitte ära lisa loogikat tagasi käivitusfailidesse.
+
 ## 1. Eesmärk
 
 Lisada olemasolevale Light Cycle Arena mängule üksikmäng, milles:
@@ -22,7 +28,8 @@ Kõige tähtsam arhitektuuriotsus: **NPC on serveris tavalise mängija kujuga ob
 
 ### Server ja võrguliiklus
 
-- `server.js` haldab Socket.IO ühendusi ja kõiki mängutegevusi.
+- `server.js` käivitab serveri ja autoritatiivse mängutsükli.
+- `src/server/` moodulid haldavad Socket.IO ühendusi, lobby't ja vooru elutsüklit.
 - Server saadab klientidele `GAME_STATE_UPDATE` sündmuse.
 - `JOIN_LOBBY`, `START_GAME`, `PLAYER_INPUT`, `PAUSE_GAME`, `RESUME_GAME`, `QUIT_MATCH`, `START_NEXT_ROUND` ja `RETURN_TO_LOBBY` on juba olemas.
 - Server töötab 30 tick'i sekundis ning on mängu autoriteetne osapool.
@@ -42,17 +49,17 @@ Kõige tähtsam arhitektuuriotsus: **NPC on serveris tavalise mängija kujuga ob
 
 ### Klient ja kasutajaliides
 
-- `public/js/client.js` saadab lobby valikud serverisse ja töötleb serveri olekut.
-- `public/js/ui.js` renderdab lobby mängijad, scoreboard'i ja nupud.
-- `public/js/renderer.js` renderdab kõiki `gameState.players` kirjeid id järgi. Seetõttu kuvatakse NPC rattad ja rajad ilma eraldi renderdusmootorita.
+- `public/js/client/controls.js` saadab lobby valikud serverisse.
+- `public/js/client/socketEvents.js` töötleb serveri olekut.
+- `public/js/ui/` renderdab lobby mängijad, scoreboard'i ja nupud.
+- `public/js/render/` renderdab kõiki `gameState.players` kirjeid id järgi. Seetõttu kuvatakse NPC rattad ja rajad ilma eraldi renderdusmootorita.
 - `public/index.html` lobby `match-settings` plokk on sobiv koht mängurežiimi ja NPC seadete lisamiseks.
 - `public/css/styles.css` sisaldab juba vormiväljade, mängijate nimekirja ja lobby paneelide stiile, mida saab laiendada.
 
 ### Praegused piirangud
 
 - Automaatseid teste ei ole.
-- `server.js` sisaldab korraga võrgu-, lobby-, vooru- ja liikumisloogikat.
-- Inimese pööramine on kirjutatud otse `PLAYER_INPUT` sündmuse sisse. NPC peab saama kasutada sama pööramise valideerimist.
+- Inimese pööramine on kirjutatud `src/server/playerHandlers.js` faili `PLAYER_INPUT` sündmuse sisse. NPC peab saama kasutada sama pööramise valideerimist.
 - `gameState` ei sisalda veel mängurežiimi ega NPC konfiguratsiooni.
 - Lobby alustamisreegel kontrollib ainult mängijate arvu ega erista inimest ja NPC-d.
 
@@ -255,7 +262,7 @@ test/
 
 ### Etapp 2: eralda ühine pööramisloogika
 
-Praegu muudab `server.js` `PLAYER_INPUT` handler otse `dx` ja `dy` väärtusi. NPC vajab sama reeglit.
+Praegu muudab `src/server/playerHandlers.js` `PLAYER_INPUT` handler otse `dx` ja `dy` väärtusi. NPC vajab sama reeglit.
 
 1. Loo `src/gameEngine.js` failis eksporditav funktsioon:
 
@@ -318,7 +325,9 @@ Praegu muudab `server.js` `PLAYER_INPUT` handler otse `dx` ja `dy` väärtusi. N
 
 ### Etapp 4: lisa lobby'sse režiimilüliti
 
-Muuda `public/index.html`, `public/js/client.js`, `public/js/ui.js` ja `public/css/styles.css`.
+Muuda `public/index.html`, `public/js/client/controls.js`,
+`public/js/client/socketEvents.js`, sobivaid `public/js/ui/` vaateid ja
+`public/css/styles.css`.
 
 1. Lisa hosti seadete plokki kaks valikut:
    - `Multiplayer`;
@@ -829,7 +838,8 @@ Minimaalne kasulik testikomplekt:
 - tühi server naaseb multiplayer algolekusse;
 - timeout lõpetab ainult single-player vooru.
 
-Kui `server.js` testimine muutub raskeks, refaktoreeri server hiljem tehasefunktsiooniks:
+Kui Socket.IO integratsioonitestid vajavad eraldi serveri instantsi, eralda
+`server.js` käivitusest hiljem tehasefunktsioon:
 
 ```js
 createGameServer()

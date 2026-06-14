@@ -1,0 +1,190 @@
+import {
+    eliminatePlayer,
+    finishRound,
+    gameState,
+    resetGameToLobby,
+    startNewTrailSegment
+} from '../gameEngine.js';
+import { spawnRandomPowerUp } from '../powerUp.js';
+import { ensureHost, getPlayerIdentity } from './playerRegistry.js';
+
+const COUNTDOWN_STEP_MS = 750;
+const POWER_UP_SPAWN_INTERVAL_MS = 6000;
+
+/**
+ * Owns timers and round transitions for one running game server.
+ *
+ * Keeping timer handles here prevents Socket.IO handlers from needing to know
+ * how countdowns, elapsed time and power-up spawning are implemented.
+ */
+export function createGameSession(io) {
+    let countdownInterval = null;
+    let powerUpInterval = null;
+    let systemNoticeId = 0;
+
+    function resolveRoundEnd() {
+        if (!['PLAYING', 'PAUSED'].includes(gameState.gameStatus)) return false;
+
+        const players = Object.values(gameState.players);
+        if (players.length < 2) return false;
+
+        players
+            .filter(player =>
+                !player.isAlive
+                && !gameState.eliminationOrder.includes(player.id)
+            )
+            .forEach(player => gameState.eliminationOrder.push(player.id));
+
+        const alivePlayers = players.filter(player => player.isAlive);
+        if (alivePlayers.length > 1) return false;
+
+        updateRoundElapsedTime();
+        return finishRound(
+            alivePlayers[0]?.id ?? null,
+            gameState.eliminationOrder
+        );
+    }
+
+    function startRoundCountdown() {
+        clearCountdown();
+
+        gameState.gameStatus = 'COUNTDOWN';
+        gameState.timer = 3;
+        gameState.roundStartedAt = null;
+        gameState.roundPausedAt = null;
+        gameState.roundPausedDurationMs = 0;
+        gameState.roundElapsedMs = 0;
+        gameState.pausedBy = null;
+        gameState.roundResult = null;
+        gameState.eliminationOrder = [];
+        gameState.eliminatedPlayers = {};
+        gameState.trails = [];
+
+        Object.values(gameState.players).forEach(player => {
+            player.isAlive = true;
+            player.dx = 0;
+            player.dy = 0;
+            delete player.currentTrailId;
+            delete player.eliminatedAt;
+        });
+
+        io.emit('GAME_STATE_UPDATE', gameState);
+
+        // The four phases are 3, 2, 1 and the transition into active play.
+        countdownInterval = setInterval(() => {
+            gameState.timer--;
+
+            if (gameState.timer < 0) {
+                clearCountdown();
+                startActiveRound();
+            }
+
+            io.emit('GAME_STATE_UPDATE', gameState);
+        }, COUNTDOWN_STEP_MS);
+    }
+
+    function startActiveRound() {
+        gameState.gameStatus = 'PLAYING';
+        gameState.powerUps = [];
+        gameState.roundStartedAt = Date.now();
+        gameState.roundElapsedMs = 0;
+
+        Object.values(gameState.players).forEach(player => {
+            setPlayerStartPosition(player);
+            startNewTrailSegment(player);
+        });
+
+        clearPowerUpSpawner();
+        powerUpInterval = setInterval(() => {
+            if (gameState.gameStatus !== 'PLAYING') {
+                clearPowerUpSpawner();
+                return;
+            }
+
+            spawnRandomPowerUp(gameState);
+        }, POWER_UP_SPAWN_INTERVAL_MS);
+    }
+
+    function removePlayerFromMatch(playerId) {
+        eliminatePlayer(playerId);
+        resolveRoundEnd();
+        delete gameState.players[playerId];
+        ensureHost(io);
+    }
+
+    function updateRoundElapsedTime(now = Date.now()) {
+        if (gameState.roundStartedAt === null) return;
+
+        const endTime = gameState.roundPausedAt ?? now;
+        gameState.roundElapsedMs = Math.max(
+            0,
+            endTime
+                - gameState.roundStartedAt
+                - gameState.roundPausedDurationMs
+        );
+    }
+
+    function pauseRoundTimer() {
+        const now = Date.now();
+        updateRoundElapsedTime(now);
+        gameState.roundPausedAt = now;
+    }
+
+    function resumeRoundTimer() {
+        if (gameState.roundPausedAt === null) return;
+
+        gameState.roundPausedDurationMs +=
+            Date.now() - gameState.roundPausedAt;
+        gameState.roundPausedAt = null;
+    }
+
+    function setSystemNotice(action, player, message) {
+        gameState.systemNotice = {
+            id: ++systemNoticeId,
+            action,
+            actor: getPlayerIdentity(player),
+            message,
+            createdAt: Date.now()
+        };
+    }
+
+    function resetEmptySession() {
+        clearCountdown();
+        clearPowerUpSpawner();
+        resetGameToLobby();
+    }
+
+    function clearCountdown() {
+        if (!countdownInterval) return;
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+    }
+
+    function clearPowerUpSpawner() {
+        if (!powerUpInterval) return;
+        clearInterval(powerUpInterval);
+        powerUpInterval = null;
+    }
+
+    return {
+        pauseRoundTimer,
+        removePlayerFromMatch,
+        resetEmptySession,
+        resolveRoundEnd,
+        resumeRoundTimer,
+        setSystemNotice,
+        startRoundCountdown,
+        updateRoundElapsedTime
+    };
+}
+
+function setPlayerStartPosition(player) {
+    const startPositions = {
+        1: { x: 400, y: 50, dx: 0, dy: 4 },
+        2: { x: 400, y: 750, dx: 0, dy: -4 },
+        3: { x: 50, y: 400, dx: 4, dy: 0 },
+        4: { x: 750, y: 400, dx: -4, dy: 0 }
+    };
+
+    Object.assign(player, startPositions[player.playerNumber]);
+}

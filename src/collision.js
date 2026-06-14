@@ -1,4 +1,4 @@
-import { startNewTrailSegment, gameState } from './gameEngine.js';
+import { startNewTrailSegment } from './gameEngine.js';
 import { emitPowerUpAudio } from './gameEvents.js';
 
 /**
