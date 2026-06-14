@@ -1,0 +1,70 @@
+web-game npc
+Add single-player mode to your web-game, by creating computer-controlled virtual opponents.
+
+The situation
+Remember your awesome web-game multi-player game? Well...
+
+Many of the players really loved playing your game, and loved it so much that they want to play it all the time, even when their friends are unavailable to play.
+
+You'll need to implement a singe-player mode, so that your players can play when their friends are offline, or they have no internet access for some reason.
+
+Functional requirements
+Single Player Mode
+The lead player currently has a menu screen which has functionality to start games.
+
+You'll need to implement additional functionality which toggles between single-player and multi-player modes.
+
+When offline mode is enabled, only the lead player can play against computer-controlled virtual opponents. Whether the lead player's computer is connected to the internet or not, incoming connections from additional players must be refused.
+
+Game play requires between 2 and 4 players. The lead player must be able to select between 1, 2 or 3 virtual opponents.
+
+The multi-player mode must still work as intended, and the game play in single-player mode must be the same as multi-player mode, albeit with virtual opponents.
+
+Virtual opponents
+The single player mode will need to be enjoyable, and the virtual opponents will therefore need to be convincing.
+
+The virtual opponents should not necessarily be expert level, they should mimic the feeling of battling against human players. They should have differing levels of ability, and not always be successful in achieving their aims.
+
+These virtual opponents will need to compete against each other too, and not only play against the real human player. Their game play will need to be diverse to avoid ending up in an infinite loop.
+
+Some players are harder to play against than others. The effectiveness of a player is a combination of how good their strategy is, and how often they are able to successfully implement their chosen strategy.
+
+You'll need to implement a minimum of three difficulty modes. You can make it more variable if you choose.
+
+Easy: Weak strategy, occasionally fails to complete its objectives.
+Medium: Good strategy, high chance of implementing their plan.
+Hard: Awesome strategy, and almost never fails to achieve its objectives.
+Virtual opponents cannot pause/restart/quit the game.
+
+Extra requirements
+Customization:
+Allow the lead player to customize the behavior and characteristics of each virtual opponents. This can include specific strategies, speed, strength, rate of success etc.
+
+You could create a way for players to customize each virtual opponent, or provide a range of virtual opponents who each have specific skills and abilities. Either way, the player should be able to see in advance how effective the virtual opponent will be.
+
+Easy/Medium/Hard modes must act as a multiplier. I.e. a skillful virtual opponent in hard mode will be extreme to play against.
+
+Bonus functionality
+You're welcome to implement other bonuses as you see fit. But anything you implement must not change the default functional behavior of your project.
+
+You may use additional feature flags, command line arguments or separate builds to switch your bonus functionality on.
+
+Resources
+None
+
+Useful links
+Beginner's Guide to Game AI
+What You'll Learn
+NPC Techniques to make single player game play interesting.
+Deliverables and Review Requirements
+All source code and configuration files
+A README file with:
+Project overview
+Setup and installation instructions
+Usage guide
+Any additional features or bonus functionality implemented
+During the review, be prepared to:
+
+Demonstrate your application's functionality
+Explain your code and design choices
+Discuss any challenges you faced and how you overcame them

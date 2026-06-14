@@ -1,0 +1,42 @@
+Testing
+Ensures that software works as expected by validating features against requirements. It helps catch bugs early, improves reliability, and maintains high-quality standards in development.
+
+How to do testing?
+
+1. Clone the repository, then build and run the submitted code.
+2. Agree on your teamwork: how do you divide testing between reviewers?
+3. Test functionality and check compliance with the requirements.
+4. Provide feedback in the group chat and request fixes if necessary.
+5. Clearly state what changes are mandatory and what are optional fixes.
+6. Repeat the testing cycle after submitters make the requested changes for as many times as is needed.
+Mandatory
+The lead player can toggle between single-player and multi-player modes.
+
+The multi-player mode still works as intended.
+
+When in single-player mode, online players' incoming connections are refused.
+
+Players can play against 1, 2 or 3 virtual opponents.
+
+Players are able to engage in matches against virtual opponents.
+
+The single-player mode feels close to multi-player mode.
+
+The virtual opponents compete against the player and amongst themselves.
+
+The moves of virtual opponents are diverse enough to prevent the game from getting stuck in an endless loop.
+
+There are at least 3 levels of difficulty for the virtual opponents.
+
+Easy, medium and hard modes are increasingly difficult to play against. They may be named differently, and there may be more than 3 modes.
+
+The student can explain the implementation of their difficulty modes.
+
+The virtual opponents cannot interact with game menus, and cannot pause/restart/quit the game.
+
+Extra
+The player can customize each virtual opponent's characteristics.
+
+The customization process is user friendly.
+It is possible to select different characteristics, whether by configuring a virtual opponent, or by selecting from a list of virtual opponents.
+The virtual opponents very closely mimic the performance of real human players.
