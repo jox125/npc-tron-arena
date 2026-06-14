@@ -1,0 +1,146 @@
+/* Reusable buttons, key hints, player rows and cycle color skins. */
+.neon-button {
+    cursor: pointer;
+    border: 1px solid var(--cyan);
+    padding: 14px 20px;
+    color: #001016;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    background: var(--cyan);
+    box-shadow: 0 0 18px rgba(0, 217, 255, 0.4);
+    transition: transform 120ms ease, box-shadow 120ms ease, opacity 120ms ease;
+}
+
+.neon-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0 28px rgba(0, 217, 255, 0.65);
+}
+
+.neon-button:focus-visible,
+.input-frame input:focus-visible {
+    outline: 2px solid white;
+    outline-offset: 3px;
+}
+
+.neon-button:disabled {
+    cursor: wait;
+    opacity: 0.55;
+    transform: none;
+}
+
+.controls-hint {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 28px;
+    color: var(--muted);
+    font-size: 0.83rem;
+}
+
+.key {
+    display: grid;
+    width: 30px;
+    height: 30px;
+    place-items: center;
+    border: 1px solid #2a769a;
+    border-radius: 3px;
+    color: var(--cyan-light);
+    background: #06111d;
+    box-shadow: inset 0 -3px 0 rgba(0, 217, 255, 0.08);
+}
+
+.players-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.player-count {
+    border: 1px solid var(--cyan);
+    padding: 7px 10px;
+    color: var(--cyan);
+    font-weight: 700;
+    box-shadow: inset 0 0 12px rgba(0, 217, 255, 0.1);
+}
+
+.player-list,
+#scoreboard-list {
+    display: grid;
+    gap: 10px;
+    margin: 28px 0;
+    padding: 0;
+    list-style: none;
+}
+
+.player-list__item,
+.scoreboard-player {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    min-height: 48px;
+    border-left: 2px solid var(--player-color, var(--cyan));
+    padding: 10px 12px;
+    background: rgba(0, 217, 255, 0.045);
+}
+
+.player-status-icons {
+    display: flex;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.status-icon {
+    font-size: 18px;
+    line-height: 1;
+}
+
+.player-color {
+    flex: 0 0 auto;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--player-color, var(--cyan));
+    box-shadow: 0 0 10px var(--player-color, var(--cyan));
+}
+
+.player-name {
+    overflow: hidden;
+    flex: 1;
+    font-weight: 650;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.player-score {
+    color: var(--cyan-light);
+    font-variant-numeric: tabular-nums;
+}
+
+.player-vehicle--blue {
+    background: url("../assets/images/characters/cycle_blue.png") no-repeat center / cover;
+    background-size: contain;
+}
+
+.player-vehicle--red {
+    background: url("../assets/images/characters/cycle_red.png") no-repeat center / cover;
+    background-size: contain;
+}
+
+.player-vehicle--yellow {
+    background: url("../assets/images/characters/cycle_yellow.png") no-repeat center / cover;
+    background-size: contain;
+}
+
+.player-vehicle--green {
+    background: url("../assets/images/characters/cycle_green.png") no-repeat center / cover;
+    background-size: contain;
+}
+
+.player-list__empty {
+    padding: 18px 0;
+    color: var(--muted);
+}

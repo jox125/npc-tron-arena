@@ -1,0 +1,30 @@
+/* Accessibility and narrow-screen adjustments. */
+@media (prefers-reduced-motion: reduce) {
+    .overlay::before,
+    .countdown__number.is-ticking,
+    .countdown-cycle.is-riding,
+    .countdown-cycle.is-riding .countdown-cycle__wheel,
+    .winner-celebration.is-active .firework,
+    .result-view.is-personal-win {
+        animation-duration: 1ms;
+        animation-iteration-count: 1;
+    }
+}
+
+@media (max-width: 760px) {
+    .lobby-screen {
+        padding: 32px 16px;
+    }
+
+    .lobby-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .panel {
+        padding: 24px;
+    }
+
+    .result-rankings__item {
+        grid-template-columns: 36px minmax(0, 1fr) auto;
+    }
+}

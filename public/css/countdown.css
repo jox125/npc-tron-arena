@@ -1,0 +1,332 @@
+/* Countdown light-cycle illustration and its individual parts. */
+.countdown__player {
+    margin: 0;
+    color: var(--overlay-color);
+    font-size: clamp(1rem, 2.3vw, 1.45rem);
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    text-shadow: 0 0 16px var(--overlay-color);
+    text-transform: uppercase;
+}
+
+.countdown__stage {
+    display: grid;
+    height: clamp(220px, 40vh, 420px);
+    place-items: center;
+    perspective: 700px;
+    transform: translateY(-9vh);
+}
+
+.countdown__number {
+    color: var(--overlay-color);
+    font-size: clamp(10rem, 30vw, 25rem);
+    font-weight: 900;
+    letter-spacing: -0.08em;
+    line-height: 0.8;
+    text-shadow:
+        0 0 10px var(--overlay-color),
+        0 0 34px var(--overlay-color),
+        0 0 90px color-mix(in srgb, var(--overlay-color) 70%, transparent);
+    transform-origin: center;
+}
+
+.countdown__number.is-ticking {
+    animation: countdown-arrive 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.countdown__hint {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+}
+
+.countdown-cycle {
+    position: fixed;
+    z-index: 2;
+    top: 68%;
+    left: -360px;
+    width: 310px;
+    height: 118px;
+    opacity: 0;
+    filter:
+        drop-shadow(0 10px 5px rgba(0, 0, 0, 0.75))
+        drop-shadow(0 0 9px color-mix(in srgb, var(--overlay-color) 72%, transparent));
+    pointer-events: none;
+    transform-origin: center;
+    will-change: transform, opacity, filter;
+}
+
+.countdown-cycle.is-riding {
+    /* Four server countdown phases at 750ms each: 3, 2, 1 and launch. */
+    animation: cycle-ride 3000ms linear forwards;
+}
+
+.countdown-cycle__trail {
+    position: absolute;
+    z-index: -1;
+    top: -18px;
+    right: 275px;
+    width: calc(100vw + 420px);
+    height: 126px;
+    background: linear-gradient(
+        to bottom,
+        transparent 0%,
+        color-mix(in srgb, var(--overlay-color) 8%, transparent) 20%,
+        color-mix(in srgb, var(--overlay-color) 24%, transparent) 64%,
+        color-mix(in srgb, var(--overlay-color) 58%, transparent) 88%,
+        var(--overlay-color) 100%
+    );
+    border-bottom: 3px solid #ffffff;
+    box-shadow:
+        inset 0 -8px 18px color-mix(in srgb, var(--overlay-color) 48%, transparent),
+        0 3px 8px var(--overlay-color),
+        0 6px 24px color-mix(in srgb, var(--overlay-color) 72%, transparent);
+}
+
+.countdown-cycle__trail::after {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    background: repeating-linear-gradient(
+        to bottom,
+        transparent 0 14px,
+        color-mix(in srgb, var(--overlay-color) 16%, transparent) 15px,
+        transparent 16px
+    );
+    box-shadow: inset -12px 0 18px color-mix(in srgb, var(--overlay-color) 38%, transparent);
+    content: "";
+}
+
+.countdown-cycle__chassis {
+    position: absolute;
+    z-index: 2;
+    top: 67px;
+    left: 58px;
+    width: 194px;
+    height: 26px;
+    border-bottom: 3px solid #020304;
+    border-radius: 42% 48% 22% 30%;
+    background:
+        linear-gradient(178deg, #313943 0 13%, #0a0e13 38%, #020305 76%),
+        #05070a;
+    box-shadow:
+        inset 0 2px 1px rgba(255, 255, 255, 0.16),
+        inset 0 -7px 12px #000000,
+        0 2px 0 color-mix(in srgb, var(--overlay-color) 45%, transparent);
+    transform: skewX(-16deg);
+}
+
+.countdown-cycle__body {
+    position: absolute;
+    z-index: 3;
+    top: 37px;
+    left: 94px;
+    width: 148px;
+    height: 49px;
+    border: 1px solid #36414c;
+    border-radius: 58% 88% 20% 44%;
+    background:
+        linear-gradient(160deg, rgba(255, 255, 255, 0.2), transparent 20%),
+        linear-gradient(172deg, #242d36 0 12%, #0b1016 42%, #020305 82%);
+    box-shadow:
+        inset 0 1px 1px rgba(255, 255, 255, 0.2),
+        inset -8px -12px 18px #000000,
+        0 0 0 1px #010203;
+    transform: skewX(-10deg);
+}
+
+.countdown-cycle__body::before {
+    position: absolute;
+    right: 7px;
+    bottom: 4px;
+    width: 74px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--overlay-color);
+    box-shadow:
+        0 0 7px var(--overlay-color),
+        0 0 18px var(--overlay-color);
+    content: "";
+}
+
+.countdown-cycle__body::after {
+    position: absolute;
+    top: 8px;
+    left: 17px;
+    width: 72px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #8795a2, transparent);
+    content: "";
+    transform: rotate(-8deg);
+}
+
+.countdown-cycle__panel {
+    position: absolute;
+    top: 18px;
+    left: 35px;
+    width: 54px;
+    height: 24px;
+    border: 1px solid #202933;
+    border-radius: 52% 20% 40% 22%;
+    background: linear-gradient(145deg, #111820, #020304);
+    box-shadow: inset 0 0 8px #000000;
+}
+
+.countdown-cycle__panel::after {
+    position: absolute;
+    right: 7px;
+    bottom: 4px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--overlay-color);
+    box-shadow: 0 0 8px var(--overlay-color);
+    content: "";
+}
+
+.countdown-cycle__seat {
+    position: absolute;
+    top: -10px;
+    left: 23px;
+    width: 58px;
+    height: 13px;
+    border-top: 2px solid #3a4651;
+    border-radius: 75% 18% 40% 20%;
+    background: linear-gradient(#151a20, #030405);
+    box-shadow: 0 3px 4px #000000;
+    transform: rotate(5deg);
+}
+
+.countdown-cycle__cockpit {
+    position: absolute;
+    top: -26px;
+    right: 25px;
+    width: 43px;
+    height: 34px;
+    border-radius: 65% 75% 25% 38%;
+    background: linear-gradient(135deg, #18212a, #030508 72%);
+    box-shadow:
+        inset 2px 2px 2px rgba(255, 255, 255, 0.1),
+        0 2px 4px #000000;
+    transform: rotate(-12deg);
+}
+
+.countdown-cycle__screen {
+    position: absolute;
+    top: -37px;
+    right: -2px;
+    width: 58px;
+    height: 31px;
+    border-top: 2px solid #60717f;
+    border-right: 2px solid #313d47;
+    border-radius: 15% 90% 12% 0;
+    background: linear-gradient(145deg, rgba(80, 108, 125, 0.55), rgba(2, 5, 8, 0.9) 68%);
+    box-shadow:
+        inset 5px 4px 8px rgba(160, 205, 225, 0.08),
+        2px -1px 4px rgba(160, 205, 225, 0.18);
+    clip-path: polygon(0 58%, 70% 0, 100% 14%, 90% 100%);
+    transform: rotate(-5deg);
+}
+
+.countdown-cycle__fork {
+    position: absolute;
+    z-index: 4;
+    top: 47px;
+    right: 57px;
+    width: 8px;
+    height: 48px;
+    border-radius: 5px;
+    background: linear-gradient(90deg, #050607, #5a6570 48%, #090b0d 72%);
+    box-shadow: 5px 0 0 #080a0c;
+    transform: rotate(19deg);
+    transform-origin: top;
+}
+
+.countdown-cycle__exhaust {
+    position: absolute;
+    z-index: 1;
+    top: 54px;
+    left: 54px;
+    width: 98px;
+    height: 9px;
+    border-radius: 9px 0 0 9px;
+    background: linear-gradient(#46515b, #080b0e 48%, #000000);
+    box-shadow: inset 0 1px rgba(255, 255, 255, 0.14);
+    transform: rotate(5deg);
+}
+
+.countdown-cycle__exhaust::before,
+.countdown-cycle__exhaust::after {
+    position: absolute;
+    left: -12px;
+    width: 22px;
+    height: 5px;
+    border-radius: 5px 0 0 5px;
+    background: linear-gradient(#3b454f, #030405);
+    content: "";
+}
+
+.countdown-cycle__exhaust::before {
+    top: -7px;
+}
+
+.countdown-cycle__exhaust::after {
+    top: 10px;
+}
+
+.countdown-cycle__wheel {
+    position: absolute;
+    z-index: 5;
+    top: 50px;
+    width: 67px;
+    height: 67px;
+    border: 6px solid #030405;
+    border-radius: 50%;
+    background:
+        radial-gradient(circle, #05070a 0 10%, #54616c 11% 14%, #080b0f 15% 30%, transparent 31%),
+        repeating-conic-gradient(from 5deg, #34404a 0 4deg, #090c10 5deg 17deg);
+    box-shadow:
+        inset 0 0 0 3px #202830,
+        inset 0 0 0 7px var(--overlay-color),
+        inset 0 0 14px var(--overlay-color),
+        0 0 0 2px #242b32,
+        0 0 12px color-mix(in srgb, var(--overlay-color) 82%, transparent);
+}
+
+.countdown-cycle__wheel::before {
+    position: absolute;
+    inset: 15px;
+    border: 2px solid #202a32;
+    border-radius: 50%;
+    background: radial-gradient(circle, #9aa7b1 0 8%, #161c22 10% 31%, #030405 33%);
+    box-shadow:
+        0 0 0 2px color-mix(in srgb, var(--overlay-color) 68%, transparent),
+        0 0 8px var(--overlay-color);
+    content: "";
+}
+
+.countdown-cycle__wheel::after {
+    position: absolute;
+    inset: -3px;
+    border-top: 2px solid rgba(255, 255, 255, 0.32);
+    border-radius: 50%;
+    content: "";
+}
+
+.countdown-cycle__wheel--front {
+    right: 8px;
+}
+
+.countdown-cycle__wheel--back {
+    left: 4px;
+}
+
+.countdown-cycle.is-riding .countdown-cycle__wheel {
+    animation: cycle-wheel-spin 240ms linear infinite;
+}
+

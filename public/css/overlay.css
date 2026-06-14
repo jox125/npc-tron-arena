@@ -1,0 +1,100 @@
+/* Full-screen overlays used by countdown, pause and results. */
+.overlay {
+    --overlay-color: var(--cyan);
+
+    position: fixed;
+    z-index: 10;
+    inset: 0;
+    overflow: hidden;
+    display: grid;
+    place-items: center;
+    text-align: center;
+    background:
+        linear-gradient(color-mix(in srgb, var(--overlay-color) 5%, transparent) 1px, transparent 1px),
+        linear-gradient(90deg, color-mix(in srgb, var(--overlay-color) 5%, transparent) 1px, transparent 1px),
+        radial-gradient(circle, color-mix(in srgb, var(--overlay-color) 13%, #02050a) 0, #02050a 64%);
+    background-size: 52px 52px, 52px 52px, auto;
+}
+
+.overlay::before {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        transparent 0,
+        color-mix(in srgb, var(--overlay-color) 7%, transparent) 50%,
+        transparent 100%
+    );
+    content: "";
+    animation: overlay-scan 2.2s linear infinite;
+    pointer-events: none;
+    will-change: transform;
+}
+
+.winner-celebration {
+    position: absolute;
+    z-index: 0;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.firework {
+    --firework-color: var(--overlay-color);
+
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    opacity: 0;
+    background: var(--firework-color);
+    box-shadow:
+        0 -76px 0 -1px var(--firework-color),
+        54px -54px 0 -1px var(--firework-color),
+        76px 0 0 -1px var(--firework-color),
+        54px 54px 0 -1px var(--firework-color),
+        0 76px 0 -1px var(--firework-color),
+        -54px 54px 0 -1px var(--firework-color),
+        -76px 0 0 -1px var(--firework-color),
+        -54px -54px 0 -1px var(--firework-color);
+    filter: drop-shadow(0 0 8px var(--firework-color));
+}
+
+.firework--one {
+    top: 24%;
+    left: 20%;
+}
+
+.firework--two {
+    --firework-color: #ffb000;
+
+    top: 18%;
+    right: 18%;
+}
+
+.firework--three {
+    --firework-color: #ffffff;
+
+    right: 26%;
+    bottom: 20%;
+}
+
+.winner-celebration.is-active .firework {
+    animation: firework-burst 900ms ease-out both;
+}
+
+.winner-celebration.is-active .firework--two {
+    animation-delay: 320ms;
+}
+
+.winner-celebration.is-active .firework--three {
+    animation-delay: 720ms;
+}
+
+.countdown {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    min-width: min(620px, calc(100vw - 32px));
+    justify-items: center;
+}
+

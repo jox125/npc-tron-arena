@@ -1,0 +1,84 @@
+/* Animation definitions are kept together for easier timing changes. */
+@keyframes countdown-arrive {
+    0% {
+        opacity: 0;
+        transform: translateZ(-520px) scale(0.18);
+    }
+
+    45% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0.88;
+        transform: translateZ(0) scale(1);
+    }
+}
+
+@keyframes cycle-ride {
+    0% {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateX(calc(100vw + 430px)) scale(1);
+    }
+}
+
+@keyframes cycle-wheel-spin {
+    to {
+        rotate: 1turn;
+    }
+}
+
+@keyframes overlay-scan {
+    from {
+        transform: translateY(-100%);
+    }
+
+    to {
+        transform: translateY(100%);
+    }
+}
+
+@keyframes firework-burst {
+    0% {
+        opacity: 0;
+        transform: scale(0.05);
+    }
+
+    18% {
+        opacity: 1;
+    }
+
+    72% {
+        opacity: 0.95;
+    }
+
+    100% {
+        opacity: 0;
+        transform: scale(1.8);
+    }
+}
+
+@keyframes winner-panel-flash {
+    0% {
+        opacity: 0;
+        filter: brightness(2.4);
+        transform: scale(0.9);
+    }
+
+    22% {
+        opacity: 1;
+        filter: brightness(1.7);
+        transform: scale(1.035);
+    }
+
+    100% {
+        filter: brightness(1);
+        transform: scale(1);
+    }
+}
+

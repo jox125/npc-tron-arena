@@ -1,0 +1,49 @@
+/* Shared design tokens and page-wide defaults. */
+:root {
+    color-scheme: dark;
+    --background: #02050a;
+    --panel: rgba(5, 14, 25, 0.88);
+    --panel-border: rgba(0, 218, 255, 0.3);
+    --cyan: #00d9ff;
+    --cyan-light: #9cf4ff;
+    --blue: #168bff;
+    --text: #edfaff;
+    --muted: #86a5b5;
+    --danger: #ff3f68;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    min-width: 320px;
+    min-height: 100%;
+    background: var(--background);
+}
+
+body {
+    min-height: 100vh;
+    margin: 0;
+    color: var(--text);
+    font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background:
+        linear-gradient(rgba(0, 217, 255, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 217, 255, 0.035) 1px, transparent 1px),
+        radial-gradient(circle at 50% 15%, #09213b 0, #030912 34%, #02050a 70%);
+    background-size: 42px 42px, 42px 42px, auto;
+}
+
+button,
+input {
+    font: inherit;
+}
+
+.screen {
+    min-height: 100vh;
+}
+
+.hidden {
+    display: none !important;
+}
+

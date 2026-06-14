@@ -35,7 +35,17 @@ power-up'i. Need otsused teeb server, et kõik mängijad näeksid sama tulemust.
 │       └── gameSession.js     # Countdown, taimerid ja vooru elutsükkel
 ├── public/
 │   ├── index.html             # Lehe semantiline struktuur
-│   ├── css/styles.css         # Rakenduse visuaalne kujundus
+│   ├── css/
+│   │   ├── base.css           # Värvid, reset ja üldised abiklassid
+│   │   ├── lobby.css          # Lobby paigutus, bränd, paneelid ja liitumisvorm
+│   │   ├── components.css     # Nupud, klahvid, mängijate read ja rattaskinid
+│   │   ├── lobby-controls.css # Hosti seaded, helinupud ja ühenduse staatus
+│   │   ├── game.css           # Scoreboard ja 800 × 800 mänguareen
+│   │   ├── overlay.css        # Täisekraani overlay ja võidutähistus
+│   │   ├── countdown.css      # Countdown ning ratta illustratsioon
+│   │   ├── results.css        # Paus, tulemused, power-up ja menüünupud
+│   │   ├── animations.css     # Kõik @keyframes definitsioonid
+│   │   └── responsive.css     # Ligipääsetavus ja väikese ekraani reeglid
 │   └── js/
 │       ├── client.js          # Brauserirakenduse käivituspunkt
 │       ├── input.js           # WASD ja nooleklahvide sisend
@@ -142,6 +152,30 @@ nimetatakse barrel'iks või facade'iks.
 - `audioPlayer.js`: Howler objektid ja tegelik taasesitus;
 - `gameAudio.js`: otsustab olekumuutuste põhjal, millal heli mängida.
 
+### `css/`
+
+`index.html` laeb CSS-moodulid eraldi `<link>` elementidega vajalikus
+cascade'i järjekorras. Eraldi lingid võimaldavad brauseril failid paralleelselt
+laadida ega tekita `@import` ahelat.
+
+- `base.css`: globaalsed CSS muutujad, `box-sizing`, lehe taust ja
+  `.hidden`;
+- `lobby.css`: avalehe paigutus, bränd, paneelid ja liitumisvorm;
+- `components.css`: korduvkasutatavad nupud, klahvivihjed, mängijate read ja
+  rattavärvide pildid;
+- `lobby-controls.css`: hosti matšiseaded, helilülitid ja lobby staatus;
+- `game.css`: aktiivse mängu paigutus, scoreboard ja areen;
+- `overlay.css`: kõigi täisekraani overlay'de ühine taust;
+- `countdown.css`: countdown'i tekst ja detailne light-cycle illustratsioon;
+- `results.css`: pausimenüü, tulemused, rankings, power-up'id ja teated;
+- `animations.css`: nimelised animatsioonid, mida teised failid kasutavad;
+- `responsive.css`: reduced-motion ja väikese ekraani parandused.
+
+Linkide järjekord `index.html` failis on oluline. Hilisem fail võib varasemat
+üldreeglit täpsustada. Uut kujundust lisades vali faili ekraani või komponendi
+vastutuse järgi ning lisa uus link ainult siis, kui lood päriselt uue
+vastutusala.
+
 ## Kuhu uus kood panna?
 
 Kasuta neid küsimusi:
@@ -154,6 +188,7 @@ Kasuta neid küsimusi:
 - Kas see liigutab või loob areeni DOM-elementi? `public/js/render/`.
 - Kas see muudab lobby't, overlay'd või teksti? `public/js/ui/`.
 - Kas see puudutab heli? `public/js/audio/`.
+- Kas see muudab ainult välimust? Sobiv `public/css/*.css` moodul.
 
 ## Kommentaaride põhimõte
 

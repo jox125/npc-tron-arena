@@ -54,7 +54,8 @@ Kõige tähtsam arhitektuuriotsus: **NPC on serveris tavalise mängija kujuga ob
 - `public/js/ui/` renderdab lobby mängijad, scoreboard'i ja nupud.
 - `public/js/render/` renderdab kõiki `gameState.players` kirjeid id järgi. Seetõttu kuvatakse NPC rattad ja rajad ilma eraldi renderdusmootorita.
 - `public/index.html` lobby `match-settings` plokk on sobiv koht mängurežiimi ja NPC seadete lisamiseks.
-- `public/css/styles.css` sisaldab juba vormiväljade, mängijate nimekirja ja lobby paneelide stiile, mida saab laiendada.
+- `public/css/` sisaldab vastutuse järgi jaotatud lobby, komponentide,
+  mänguareeni, overlay ja responsive kujunduse faile, mida saab laiendada.
 
 ### Praegused piirangud
 
@@ -327,7 +328,7 @@ Praegu muudab `src/server/playerHandlers.js` `PLAYER_INPUT` handler otse `dx` ja
 
 Muuda `public/index.html`, `public/js/client/controls.js`,
 `public/js/client/socketEvents.js`, sobivaid `public/js/ui/` vaateid ja
-`public/css/styles.css`.
+vastutusele sobivat `public/css/` moodulit.
 
 1. Lisa hosti seadete plokki kaks valikut:
    - `Multiplayer`;
