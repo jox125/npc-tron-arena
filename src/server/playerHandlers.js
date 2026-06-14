@@ -1,8 +1,6 @@
 import {
     applyPlayerTurn,
-    gameState,
-    resetGameToLobby,
-    startNewTrailSegment
+    gameState
 } from '../gameEngine.js';
 import {ensureHost} from './playerRegistry.js';
 

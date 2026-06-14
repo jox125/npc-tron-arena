@@ -107,7 +107,7 @@ export function applyPlayerTurn(player, turn) {
             }
             break;
         default:
-            return;
+            return false;
     }
 
     if (turned) {
