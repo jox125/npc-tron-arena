@@ -1,58 +1,21 @@
 import {
+    applyPlayerTurn,
     gameState,
     resetGameToLobby,
     startNewTrailSegment
 } from '../gameEngine.js';
-import { ensureHost } from './playerRegistry.js';
+import {ensureHost} from './playerRegistry.js';
 
 /**
  * Registers real-time player input and connection cleanup.
  */
-export function registerPlayerHandlers({ io, socket, session }) {
+export function registerPlayerHandlers({io, socket, session}) {
     socket.on('PLAYER_INPUT', (data = {}) => {
         const player = gameState.players[socket.id];
         if (!player || !player.isAlive || gameState.gameStatus !== 'PLAYING') {
             return;
         }
-
-        let turned = false;
-
-        switch (data.turn) {
-            case 'UP':
-                if (player.dy === 0) {
-                    player.dx = 0;
-                    player.dy = -4;
-                    turned = true;
-                }
-                break;
-            case 'DOWN':
-                if (player.dy === 0) {
-                    player.dx = 0;
-                    player.dy = 4;
-                    turned = true;
-                }
-                break;
-            case 'LEFT':
-                if (player.dx === 0) {
-                    player.dx = -4;
-                    player.dy = 0;
-                    turned = true;
-                }
-                break;
-            case 'RIGHT':
-                if (player.dx === 0) {
-                    player.dx = 4;
-                    player.dy = 0;
-                    turned = true;
-                }
-                break;
-            default:
-                return;
-        }
-
-        if (turned) {
-            startNewTrailSegment(player);
-        }
+        applyPlayerTurn(player, data.turn);
     });
 
     socket.on('disconnect', () => {

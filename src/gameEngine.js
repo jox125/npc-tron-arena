@@ -20,7 +20,7 @@ export let gameState = {
     roundResult: null,
     eliminationOrder: [],
     eliminatedPlayers: {},
-    players: {},         // Keyed by socket.id
+    players: {},         // Keyed by socket.io
     trails: [],           // Array of solid trail line rectangles
     powerUps: []        // Array of items: { id, type, x, y, radius: 15 }
 };
@@ -70,6 +70,51 @@ export function updateGamePhysics() {
            eliminatePlayer(player.id);
         }
     });
+}
+
+export function applyPlayerTurn(player, turn) {
+
+    let turned = false;
+
+    switch (turn) {
+        case 'UP':
+            if (player.dy === 0) {
+                player.dx = 0;
+                player.dy = -4;
+                turned = true;
+            }
+            break;
+        case 'DOWN':
+            if (player.dy === 0) {
+                player.dx = 0;
+                player.dy = 4;
+                turned = true;
+            }
+            break;
+        case 'LEFT':
+            if (player.dx === 0) {
+                player.dx = -4;
+                player.dy = 0;
+                turned = true;
+            }
+            break;
+        case 'RIGHT':
+            if (player.dx === 0) {
+                player.dx = 4;
+                player.dy = 0;
+                turned = true;
+            }
+            break;
+        default:
+            return;
+    }
+
+    if (turned) {
+        startNewTrailSegment(player);
+        return true;
+    }
+
+    return false;
 }
 
 export function getNextPlayerNumber() {
