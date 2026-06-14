@@ -75,32 +75,33 @@ export function updateGamePhysics() {
 export function applyPlayerTurn(player, turn) {
 
     let turned = false;
+    const speed = Math.abs(player.dx || player.dy) || 4;
 
     switch (turn) {
         case 'UP':
             if (player.dy === 0) {
                 player.dx = 0;
-                player.dy = -4;
+                player.dy = -speed;
                 turned = true;
             }
             break;
         case 'DOWN':
             if (player.dy === 0) {
                 player.dx = 0;
-                player.dy = 4;
+                player.dy = speed;
                 turned = true;
             }
             break;
         case 'LEFT':
             if (player.dx === 0) {
-                player.dx = -4;
+                player.dx = -speed;
                 player.dy = 0;
                 turned = true;
             }
             break;
         case 'RIGHT':
             if (player.dx === 0) {
-                player.dx = 4;
+                player.dx = speed;
                 player.dy = 0;
                 turned = true;
             }
