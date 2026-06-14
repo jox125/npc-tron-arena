@@ -1,11 +1,13 @@
 import { checkTrailCollision } from './collision.js';
 import { processPowerUpCollection, maintainPowerUpTimers } from './powerUp.js';
+import {GAME_MODES} from "./server/gameModes.js";
 // Game dimensions configuration
 export const ARENA_WIDTH = 800;
 export const ARENA_HEIGHT = 800;
 
 // --- AUTHORITATIVE CORE GAME LOOP ---
 export let gameState = {
+    gameMode: "MULTIPLAYER", //MULTIPLAYER, SINGLEPLAYER
     gameStatus: "LOBBY", // LOBBY, COUNTDOWN, PLAYING, PAUSED, GAME_OVER
     timer: 0,
     pausedBy: null,
@@ -236,6 +238,10 @@ export function prepareNextRound() {
 }
 
 export function resetGameToLobby() {
+    if (Object.keys(gameState.players).length === 0) {
+        gameState.gameMode = GAME_MODES.MULTIPLAYER;
+    }
+
     gameState.gameStatus = "LOBBY";
     gameState.timer = 0;
     gameState.roundStartedAt = null;

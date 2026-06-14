@@ -1,10 +1,11 @@
-import { gameState } from '../gameEngine.js';
-import { createPlayer, ensureHost } from './playerRegistry.js';
+import {gameState} from '../gameEngine.js';
+import {createPlayer, ensureHost} from './playerRegistry.js';
+import {GAME_MODES} from "./gameModes.js";
 
 /**
  * Registers events that are valid while players are waiting in the lobby.
  */
-export function registerLobbyHandlers({ io, socket }) {
+export function registerLobbyHandlers({io, socket}) {
     socket.on('JOIN_LOBBY', (data = {}) => {
         if (gameState.gameStatus !== 'LOBBY') {
             socket.emit('JOIN_ERROR', {
@@ -48,7 +49,7 @@ export function registerLobbyHandlers({ io, socket }) {
             requestedName
         );
 
-        socket.emit('JOIN_SUCCESS', { playerId: socket.id });
+        socket.emit('JOIN_SUCCESS', {playerId: socket.id});
         io.emit('ROOM_STATE_UPDATE', Object.values(gameState.players));
     });
 
@@ -69,7 +70,7 @@ export function registerLobbyHandlers({ io, socket }) {
         io.emit('GAME_STATE_UPDATE', gameState);
     });
 
-    socket.on('UPDATE_MATCH_SETTINGS', ({ winsRequired } = {}) => {
+    socket.on('UPDATE_MATCH_SETTINGS', ({winsRequired} = {}) => {
         const player = gameState.players[socket.id];
         if (!player?.isHost || gameState.gameStatus !== 'LOBBY') {
             socket.emit('MATCH_SETTINGS_ERROR', {
@@ -91,6 +92,33 @@ export function registerLobbyHandlers({ io, socket }) {
         }
 
         gameState.winsRequired = requestedWins;
+        io.emit('GAME_STATE_UPDATE', gameState);
+    });
+
+    socket.on("UPDATE_GAME_MODE", ({gameMode} = {}) => {
+        const player = gameState.players[socket.id];
+
+        if (!player?.isHost || gameState.gameStatus !== 'LOBBY') {
+            socket.emit('GAME_MODE_ERROR', {
+                message: 'Only the room host can change game mode.'
+            });
+            return;
+        }
+
+        if (!Object.values(GAME_MODES).includes(gameMode)) {
+            socket.emit('GAME_MODE_ERROR', {
+                message: 'Unknown game mode.'
+            });
+            return;
+        }
+        if (gameMode === GAME_MODES.SINGLE_PLAYER && Object.values(gameState.players).length > 1) {
+            socket.emit('GAME_MODE_ERROR', {
+                message: 'Single play mode allowed only when no other human players available'
+            });
+            return;
+        }
+
+        gameState.gameMode = gameMode;
         io.emit('GAME_STATE_UPDATE', gameState);
     });
 }
