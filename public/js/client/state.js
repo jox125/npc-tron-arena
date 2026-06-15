@@ -14,6 +14,7 @@ export const clientSession = {
     currentPlayerId: null,
     lobbyPlayers: [],
     currentGameStatus: 'LOBBY',
+    currentGameMode: 'MULTIPLAYER',
     currentWinsRequired: 3,
     lastSystemNoticeId: null
 };

@@ -15,6 +15,7 @@ import {
     showStartError,
     showSystemNotice,
     updateArenaIdentity,
+    updateGameMode,
     updateGameTimer,
     updateLobbyActions,
     updateLobbyPlayers,
@@ -89,6 +90,11 @@ export function registerSocketEvents(socket) {
         'MATCH_SETTINGS_ERROR',
         ({ message }) => showStartError(message)
     );
+    socket.on('GAME_MODE_ERROR', ({ message }) => {
+        const currentPlayer = findCurrentPlayer(clientSession.lobbyPlayers);
+        updateGameMode(currentPlayer, clientSession.currentGameMode);
+        showStartError(message);
+    });
     socket.on(
         'ROUND_ACTION_ERROR',
         ({ message }) => showReturnToLobbyError(message)
@@ -124,6 +130,7 @@ export function registerSocketEvents(socket) {
             currentPlayer,
             clientSession.currentWinsRequired
         );
+        updateGameMode(currentPlayer, clientSession.currentGameMode);
         updateScoreboard(players, clientSession.currentPlayerId);
     });
 
@@ -137,8 +144,10 @@ function handleGameStateUpdate(gameState) {
     const currentPlayer = findCurrentPlayer(players);
 
     clientSession.currentGameStatus = gameState.gameStatus;
+    clientSession.currentGameMode = gameState.gameMode;
     clientSession.currentWinsRequired = gameState.winsRequired;
 
+    updateGameMode(currentPlayer, gameState.gameMode);
     updateMatchSettings(currentPlayer, gameState.winsRequired);
     updateGameTimer(gameState);
     updateRoundStatus(gameState);

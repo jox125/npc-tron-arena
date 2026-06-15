@@ -4,6 +4,7 @@ const lobbyActions = document.querySelector('#lobby-actions');
 const startGameButton = document.querySelector('#start-game-button');
 const leaveLobbyButton = document.querySelector('#leave-lobby-button');
 const startGameMessage = document.querySelector('#start-game-message');
+const gameModeSwitch = document.querySelector('#game-mode-switch');
 const winsRequiredSelect = document.querySelector('#wins-required');
 const roundStatus = document.querySelector('#round-status');
 const gameTimerNumber = document.querySelector('#game-timer-number');
@@ -26,6 +27,20 @@ export function updateMatchSettings(currentPlayer, winsRequired) {
     lastIsHost = isHost;
     winsRequiredSelect.value = String(winsRequired);
     winsRequiredSelect.disabled = !isHost;
+}
+
+export function updateGameMode(currentPlayer, gameMode) {
+    const isHost = currentPlayer?.isHost === true;
+    const isSinglePlayer = gameMode === 'SINGLE_PLAYER';
+
+    gameModeSwitch.disabled = !isHost;
+    gameModeSwitch.setAttribute('aria-pressed', String(isSinglePlayer));
+    gameModeSwitch.setAttribute(
+        'aria-label',
+        isSinglePlayer
+            ? 'Switch to multiplayer mode'
+            : 'Switch to single-player mode'
+    );
 }
 
 export function updateRoundStatus(gameState) {

@@ -45,14 +45,14 @@
                         <label for="player-name">Player name</label>
                         <div class="input-frame">
                             <input
-                                id="player-name"
-                                name="playerName"
-                                type="text"
-                                minlength="2"
-                                maxlength="16"
-                                autocomplete="nickname"
-                                placeholder="Enter a unique name"
-                                required
+                                    id="player-name"
+                                    name="playerName"
+                                    type="text"
+                                    minlength="2"
+                                    maxlength="16"
+                                    autocomplete="nickname"
+                                    placeholder="Enter a unique name"
+                                    required
                             >
                         </div>
                         <p id="join-message" class="form-message" aria-live="polite"></p>
@@ -95,6 +95,23 @@
 
                     <div id="lobby-actions" class="lobby-actions hidden">
                         <div class="match-settings">
+                            <div class="game-mode-switch-label">Game mode</div>
+                            <button
+                                id="game-mode-switch"
+                                class="game-mode-switch"
+                                type="button"
+                                aria-label="Switch to single-player mode"
+                                aria-pressed="false"
+                            >
+                                <span class="game-mode-switch__card">
+                                    <span class="game-mode-switch__face game-mode-switch__face--front">
+                                        Multiplayer
+                                    </span>
+                                    <span class="game-mode-switch__face game-mode-switch__face--back">
+                                        Single player
+                                    </span>
+                                </span>
+                            </button>
                             <label for="wins-required">Round wins required</label>
                             <select id="wins-required">
                                 <option value="1">1</option>

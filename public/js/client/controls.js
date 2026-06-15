@@ -15,6 +15,7 @@ const playerNameInput = document.querySelector('#player-name');
 const joinButton = document.querySelector('#join-button');
 const startGameButton = document.querySelector('#start-game-button');
 const leaveLobbyButton = document.querySelector('#leave-lobby-button');
+const gameModeSwitch = document.querySelector('#game-mode-switch');
 const winsRequiredSelect = document.querySelector('#wins-required');
 const nextRoundButton = document.querySelector('#next-round-button');
 const returnToLobbyButton =
@@ -63,6 +64,22 @@ export function registerControls(socket) {
     winsRequiredSelect.addEventListener('change', () => {
         socket.emit('UPDATE_MATCH_SETTINGS', {
             winsRequired: Number(winsRequiredSelect.value)
+        });
+    });
+
+    gameModeSwitch.addEventListener('click', () => {
+        const requestedGameMode =
+            clientSession.currentGameMode === 'MULTIPLAYER'
+                ? 'SINGLE_PLAYER'
+                : 'MULTIPLAYER';
+
+        gameModeSwitch.disabled = true;
+        gameModeSwitch.setAttribute(
+            'aria-pressed',
+            String(requestedGameMode === 'SINGLE_PLAYER')
+        );
+        socket.emit('UPDATE_GAME_MODE', {
+            gameMode: requestedGameMode
         });
     });
 
