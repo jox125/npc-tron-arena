@@ -5,7 +5,7 @@ import {
     getNextPlayerNumber
 } from '../gameEngine.js';
 
-const PLAYER_COLORS = Object.freeze([
+export const PLAYER_COLORS = Object.freeze([
     '#00d9ff',
     '#ff3f68',
     '#29ff9a',
