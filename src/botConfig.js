@@ -24,11 +24,11 @@ const BOT_NAMES = Object.freeze({
     10: "Hugo", 20: "Rinc", 30: "Pendragon", 40: "Lincoln"
 });
 
-export function createBot({playerNumber, difficulty, personality}) {
+export function createBot({playerNumber, difficulty, personality, name}) {
 
     return {
         id: "bot-" + playerNumber,
-        name: chooseBotName(),
+        name: name,
         playerNumber: playerNumber,
         x: ARENA_WIDTH / 2,
         y: ARENA_HEIGHT / 2,
@@ -45,16 +45,60 @@ export function createBot({playerNumber, difficulty, personality}) {
 
 }
 
-function validateBotConfigs(configs, expectedCount) {
+export function validateBotConfigs(configs, expectedCount) {
+    if (!Number.isInteger(expectedCount) || expectedCount < 1 || expectedCount > 3) {
+        return {
+            valid: false,
+            message: 'Opponent count must be between 1 and 3.'
+        };
+    }
 
+    if (!Array.isArray(configs) || configs.length !== expectedCount) {
+        return {
+            valid: false,
+            message: 'Bot configuration count does not match opponent count.'
+        };
+    }
+
+    const validDifficulties = Object.values(BOT_DIFFICULTIES);
+    const validPersonalities = Object.values(BOT_PERSONALITIES);
+
+    const normalizedConfigs = [];
+
+    for (const config of configs) {
+        if (!validDifficulties.includes(config?.difficulty)) {
+            return {
+                valid: false,
+                message: 'Unknown bot difficulty.'
+            };
+        }
+
+        if (!validPersonalities.includes(config?.personality)) {
+            return {
+                valid: false,
+                message: 'Unknown bot personality.'
+            };
+        }
+
+        normalizedConfigs.push({
+            difficulty: config.difficulty,
+            personality: config.personality
+        });
+    }
+
+    return {
+        valid: true,
+        configs: normalizedConfigs
+    };
 }
 
-function chooseBotName() {
-    const players = Object.values(gameState.players);
-    let name = "";
-    do {
-        name = BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.keys().length + 2)]
-    } while (players.some(player => player.name === name))
+export function chooseBotNames(count, unavailableNames = []) {
+    const unavailable = new Set(
+        unavailableNames.map(name => name.toLowerCase())
+    );
 
-    return name;
+    const availableNames = Object.values(BOT_NAMES)
+        .filter(name => !unavailable.has(name.toLowerCase()));
+
+    return shuffle(availableNames).slice(0, count);
 }
