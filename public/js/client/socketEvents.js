@@ -37,7 +37,7 @@ const leaveLobbyButton = document.querySelector('#leave-lobby-button');
  * Applies authoritative Socket.IO responses to local UI and render state.
  */
 export function registerSocketEvents(socket) {
-    socket.on('JOIN_SUCCESS', ({ playerId }) => {
+    socket.on('JOIN_SUCCESS', ({playerId}) => {
         clientSession.currentPlayerId = playerId;
         playerNameInput.disabled = true;
         joinButton.disabled = true;
@@ -52,7 +52,7 @@ export function registerSocketEvents(socket) {
         );
     });
 
-    socket.on('JOIN_ERROR', ({ code, message }) => {
+    socket.on('JOIN_ERROR', ({code, message}) => {
         if (
             code === 'MATCH_IN_PROGRESS'
             || clientSession.currentGameStatus !== 'LOBBY'
@@ -80,43 +80,43 @@ export function registerSocketEvents(socket) {
         playerNameInput.focus();
     });
 
-    socket.on('LEAVE_LOBBY_ERROR', ({ message }) => {
+    socket.on('LEAVE_LOBBY_ERROR', ({message}) => {
         leaveLobbyButton.disabled = false;
         showJoinMessage(message);
     });
 
-    socket.on('START_ERROR', ({ message }) => showStartError(message));
+    socket.on('START_ERROR', ({message}) => showStartError(message));
     socket.on(
         'MATCH_SETTINGS_ERROR',
-        ({ message }) => showStartError(message)
+        ({message}) => showStartError(message)
     );
-    socket.on('GAME_MODE_ERROR', ({ message }) => {
+    socket.on('GAME_MODE_ERROR', ({message}) => {
         const currentPlayer = findCurrentPlayer(clientSession.lobbyPlayers);
         updateGameMode(currentPlayer, clientSession.currentGameMode);
         showStartError(message);
     });
     socket.on(
         'ROUND_ACTION_ERROR',
-        ({ message }) => showReturnToLobbyError(message)
+        ({message}) => showReturnToLobbyError(message)
     );
     socket.on(
         'RETURN_TO_LOBBY_ERROR',
-        ({ message }) => showReturnToLobbyError(message)
+        ({message}) => showReturnToLobbyError(message)
     );
     socket.on(
         'QUIT_MATCH_ERROR',
-        ({ message }) => showPauseMenuError(message)
+        ({message}) => showPauseMenuError(message)
     );
 
     socket.on('QUIT_MATCH_SUCCESS', () => {
         clientSession.currentPlayerId = null;
     });
 
-    socket.on('HOST_CHANGED', ({ message }) => {
+    socket.on('HOST_CHANGED', ({message}) => {
         showHostChanged(message);
     });
 
-    socket.on('POWERUP_AUDIO', ({ cue }) => {
+    socket.on('POWERUP_AUDIO', ({cue}) => {
         if (clientSession.currentPlayerId) playPowerUpCue(cue);
     });
 
@@ -142,6 +142,7 @@ export function registerSocketEvents(socket) {
 function handleGameStateUpdate(gameState) {
     const players = Object.values(gameState.players);
     const currentPlayer = findCurrentPlayer(players);
+    const isHost = currentPlayer?.isHost === true;
 
     clientSession.currentGameStatus = gameState.gameStatus;
     clientSession.currentGameMode = gameState.gameMode;
@@ -173,6 +174,15 @@ function handleGameStateUpdate(gameState) {
         joinButton.disabled = false;
         joinButton.textContent = 'Enter lobby';
         showJoinMessage('');
+    }
+
+    if (gameState.gameStatus === 'LOBBY'
+        && gameState.gameMode === 'SINGLE_PLAYER'
+        && !isHost) {
+        playerNameInput.disabled = true;
+        joinButton.disabled = true;
+        joinButton.textContent = 'Single player mode';
+        showJoinMessage('Only bots allowed in single player mode!');
     }
 
     updateArenaIdentity(currentPlayer);
