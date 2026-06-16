@@ -333,7 +333,7 @@ vastutusele sobivat `public/css/` moodulit.
 1. Lisa hosti seadete plokki kaks valikut:
    - `Multiplayer`;
    - `Single-player`.
-2. Kasuta kas radio-nuppe või hästi märgistatud segmented control'i. Tavaline checkbox nimega “Offline” on ebaselgem.
+2. Kasuta selgelt märgistatud kahe olekuga kontrolli, näiteks radio-nuppe, segmented control'i või flip-lülitit. Tavaline checkbox nimega “Offline” on ebaselgem.
 3. Mitte-hosti jaoks peab valik olema nähtav, kuid keelatud.
 4. `client.js` saadab muudatuse sündmusega `UPDATE_GAME_MODE`.
 5. `GAME_STATE_UPDATE` põhjal peab UI alati serveri tegeliku väärtuse taastama.

@@ -4,9 +4,10 @@ import { startInput } from './input.js';
 import { startLoop } from './renderer.js';
 
 // Socket.IO's browser bundle exposes the io() factory globally.
-const socket = io();
+const socket = io({ autoConnect: false });
 
 registerControls(socket);
 registerSocketEvents(socket);
+socket.connect();
 startInput(socket);
 startLoop();

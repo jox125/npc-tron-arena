@@ -53,6 +53,11 @@ export function registerSocketEvents(socket) {
     });
 
     socket.on('JOIN_ERROR', ({code, message}) => {
+        if (code === 'SINGLE_PLAYER_ACTIVE') {
+            showSinglePlayerActive(message);
+            return;
+        }
+
         if (
             code === 'MATCH_IN_PROGRESS'
             || clientSession.currentGameStatus !== 'LOBBY'
@@ -67,6 +72,12 @@ export function registerSocketEvents(socket) {
         joinButton.disabled = false;
         showJoinMessage(message);
         playerNameInput.select();
+    });
+
+    socket.on('connect_error', error => {
+        if (error.data?.code !== 'SINGLE_PLAYER_ACTIVE') return;
+
+        showSinglePlayerActive(error.data.message);
     });
 
     socket.on('LEAVE_LOBBY_SUCCESS', () => {
@@ -207,6 +218,13 @@ function findCurrentPlayer(players) {
     return players.find(
         player => player.id === clientSession.currentPlayerId
     );
+}
+
+function showSinglePlayerActive(message) {
+    playerNameInput.disabled = true;
+    joinButton.disabled = true;
+    joinButton.textContent = 'Single player mode';
+    showJoinMessage(message);
 }
 
 function showNewSystemNotice(notice) {

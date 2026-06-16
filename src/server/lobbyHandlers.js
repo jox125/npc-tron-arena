@@ -1,4 +1,4 @@
-import {gameState} from '../gameEngine.js';
+import {gameState, resetGameToLobby} from '../gameEngine.js';
 import {createPlayer, ensureHost} from './playerRegistry.js';
 import {GAME_MODES} from "./gameModes.js";
 
@@ -12,6 +12,14 @@ export function registerLobbyHandlers({io, socket}) {
                 code: 'MATCH_IN_PROGRESS',
                 message:
                     'A match is currently in progress. Wait for the next lobby.'
+            });
+            return;
+        }
+
+        if (gameState.gameMode === GAME_MODES.SINGLE_PLAYER) {
+            socket.emit('JOIN_ERROR', {
+                code: 'SINGLE_PLAYER_ACTIVE',
+                message: 'Single-player match is active.'
             });
             return;
         }
@@ -63,6 +71,11 @@ export function registerLobbyHandlers({io, socket}) {
         }
 
         delete gameState.players[socket.id];
+
+        if (Object.keys(gameState.players).length === 0) {
+            resetGameToLobby();
+        }
+
         ensureHost(io);
 
         socket.emit('LEAVE_LOBBY_SUCCESS');

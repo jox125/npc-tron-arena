@@ -6,6 +6,7 @@ import path from 'path';
 import { gameState, updateGamePhysics } from './src/gameEngine.js';
 import { gameEvents } from './src/gameEvents.js';
 import { createGameSession } from './src/server/gameSession.js';
+import { GAME_MODES } from './src/server/gameModes.js';
 import { registerSocketHandlers } from './src/server/socketHandlers.js';
 
 const app = express();
@@ -25,6 +26,20 @@ app.use(
     '/vendor/howler',
     express.static(path.join(import.meta.dirname, 'node_modules/howler/dist'))
 );
+
+io.use((socket, next) => {
+    if (gameState.gameMode === GAME_MODES.SINGLE_PLAYER) {
+        const error = new Error('Single-player match is active.');
+        error.data = {
+            code: 'SINGLE_PLAYER_ACTIVE',
+            message: 'Single-player match is active.'
+        };
+        next(error);
+        return;
+    }
+
+    next();
+});
 
 io.on('connection', (socket) => {
     registerSocketHandlers({ io, socket, session });

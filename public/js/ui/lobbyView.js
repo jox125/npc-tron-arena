@@ -8,7 +8,7 @@ const gameModeSwitch = document.querySelector('#game-mode-switch');
 const winsRequiredSelect = document.querySelector('#wins-required');
 const roundStatus = document.querySelector('#round-status');
 const gameTimerNumber = document.querySelector('#game-timer-number');
-const lobbyModeIndicator = document.querySelector('#lobby-mode-indicator');
+const lobbyModeText = document.querySelector('#lobby-mode-text');
 
 let lastRoundStatus = null;
 let lastWinsRequired = null;
@@ -42,9 +42,9 @@ export function updateGameMode(currentPlayer, gameMode) {
             ? 'Switch to multiplayer mode'
             : 'Switch to single-player mode'
     );
-    lobbyModeIndicator.innerHTML = isSinglePlayer ? "<span class='status-light'></span>Single player" : "<span class='status-light'></span>Lobby online";
-
-    
+    lobbyModeText.textContent = isSinglePlayer
+        ? 'Single-player lobby'
+        : 'Lobby online';
 }
 
 export function updateRoundStatus(gameState) {
