@@ -109,6 +109,15 @@ export function createGameSession(io) {
         eliminatePlayer(playerId);
         resolveRoundEnd();
         delete gameState.players[playerId];
+
+        const hasHumanPlayers = Object.values(gameState.players)
+            .some(player => player.isBot !== true);
+        if (!hasHumanPlayers) {
+            gameState.players = {};
+            resetEmptySession();
+            return;
+        }
+
         ensureHost(io);
     }
 

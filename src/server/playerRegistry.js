@@ -51,12 +51,17 @@ export function getPlayerIdentity(player) {
  * Makes the lowest-numbered remaining player host when the old host leaves.
  */
 export function ensureHost(io) {
-    const players = Object.values(gameState.players);
-    if (players.length === 0 || players.some(player => player.isHost)) {
+    const humanPlayers = Object.values(gameState.players)
+        .filter(player => player.isBot !== true);
+
+    if (
+        humanPlayers.length === 0
+        || humanPlayers.some(player => player.isHost)
+    ) {
         return;
     }
 
-    const newHost = [...players]
+    const newHost = [...humanPlayers]
         .sort((a, b) => a.playerNumber - b.playerNumber)[0];
 
     newHost.isHost = true;
