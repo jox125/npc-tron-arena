@@ -23,8 +23,9 @@ export let gameState = {
     eliminationOrder: [],
     eliminatedPlayers: {},
     players: {},         // Keyed by socket.io
-    trails: [],           // Array of solid trail line rectangles
-    powerUps: []        // Array of items: { id, type, x, y, radius: 15 }
+    trails: [],          // Array of solid trail line rectangles
+    powerUps: [],        // Array of items: { id, type, x, y, radius: 15 }
+    botConfigs: []
 };
 
 /**

@@ -1,4 +1,4 @@
-import {ARENA_HEIGHT, ARENA_WIDTH, gameState} from "./gameEngine.js";
+import {ARENA_HEIGHT, ARENA_WIDTH} from "./gameEngine.js";
 import {PLAYER_COLORS} from "./server/playerRegistry.js";
 
 export const BOT_DIFFICULTIES = Object.freeze({
@@ -28,7 +28,7 @@ export function createBot({playerNumber, difficulty, personality, name}) {
 
     return {
         id: "bot-" + playerNumber,
-        name: name,
+        name: name + " (Bot)",
         playerNumber: playerNumber,
         x: ARENA_WIDTH / 2,
         y: ARENA_HEIGHT / 2,
@@ -101,4 +101,10 @@ export function chooseBotNames(count, unavailableNames = []) {
         .filter(name => !unavailable.has(name.toLowerCase()));
 
     return shuffle(availableNames).slice(0, count);
+}
+
+function shuffle (array) {
+    return array.map((a) => ({ sort: Math.random(), value: a }))
+        .sort((a, b) => a.sort - b.sort)
+        .map((a) => a.value);
 }

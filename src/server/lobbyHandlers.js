@@ -1,6 +1,7 @@
 import {gameState, resetGameToLobby} from '../gameEngine.js';
 import {createPlayer, ensureHost} from './playerRegistry.js';
 import {GAME_MODES} from "./gameModes.js";
+import {chooseBotNames, createBot, validateBotConfigs} from "../botConfig.js";
 
 /**
  * Registers events that are valid while players are waiting in the lobby.
@@ -130,8 +131,80 @@ export function registerLobbyHandlers({io, socket}) {
             });
             return;
         }
+        if (gameMode === GAME_MODES.MULTIPLAYER) {
+            removeBotsFromLobby();
+            gameState.botConfigs = [];
+            io.emit('ROOM_STATE_UPDATE', Object.values(gameState.players));
+        }
+        if (gameMode === GAME_MODES.SINGLE_PLAYER && gameState.botConfigs.length === 0) {
+            gameState.botConfigs = [{
+                difficulty: 'EASY',
+                personality: 'SURVIVOR'
+            }];
+            syncLobbyBots(gameState.botConfigs);
+            io.emit('ROOM_STATE_UPDATE', Object.values(gameState.players));
+        }
 
         gameState.gameMode = gameMode;
         io.emit('GAME_STATE_UPDATE', gameState);
+    });
+
+    socket.on("UPDATE_BOT_SETTINGS", ({configs, opponentCount}) => {
+        const player = gameState.players[socket.id];
+
+        if (!player ||
+            !player?.isHost ||
+            gameState.gameStatus !== 'LOBBY' ||
+            gameState.gameMode !== GAME_MODES.SINGLE_PLAYER ||
+            !Number.isInteger(opponentCount)
+            || opponentCount < 1
+            || opponentCount > 3
+            ) {
+            socket.emit('BOT_SETTINGS_ERROR', {
+                message: "Bots configuration (1-3) only allowed in single player mode by game host."
+            });
+            return;
+        }
+
+        const validation = validateBotConfigs(configs, opponentCount);
+
+        if (!validation.valid) {
+            socket.emit('BOT_SETTINGS_ERROR', {
+                message: validation.message
+            });
+            return;
+        }
+
+        gameState.botConfigs = validation.configs;
+        syncLobbyBots(validation.configs);
+        io.emit('ROOM_STATE_UPDATE', Object.values(gameState.players));
+        io.emit('GAME_STATE_UPDATE', gameState);
+    });
+}
+
+function removeBotsFromLobby() {
+    Object.keys(gameState.players)
+        .filter(id => gameState.players[id].isBot)
+        .forEach(id => delete gameState.players[id]);
+}
+
+function syncLobbyBots(configs) {
+    removeBotsFromLobby();
+
+    const humanNames = Object.values(gameState.players)
+        .filter(player => player.isBot !== true)
+        .map(player => player.name);
+
+    const botNames = chooseBotNames(configs.length, humanNames);
+
+    configs.forEach((config, index) => {
+        const playerNumber = index + 2;
+        const bot = createBot({
+            ...config,
+            name: botNames[index],
+            playerNumber
+        });
+
+        gameState.players[bot.id] = bot;
     });
 }
