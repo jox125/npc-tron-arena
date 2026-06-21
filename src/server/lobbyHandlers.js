@@ -190,23 +190,38 @@ function removeBotsFromLobby() {
 }
 
 function syncLobbyBots(configs) {
-    removeBotsFromLobby();
+    const activeBotIds = new Set(
+        configs.map((_, index) => `bot-${index + 2}`)
+    );
 
-    const humanNames = Object.values(gameState.players)
-        .filter(player => player.isBot !== true)
-        .map(player => player.name);
+    Object.keys(gameState.players)
+        .filter(id => gameState.players[id].isBot && !activeBotIds.has(id))
+        .forEach(id => delete gameState.players[id]);
 
-    const botNames = chooseBotNames(configs.length, humanNames);
+    const unavailableNames = Object.values(gameState.players)
+        .map(player => player.name.replace(' (Bot)', ''));
 
     configs.forEach((config, index) => {
         const playerNumber = index + 2;
-        const bot = createBot({
+        const botId = `bot-${playerNumber}`;
+        const existingBot = gameState.players[botId];
+
+        if (existingBot) {
+            existingBot.difficulty = config.difficulty;
+            existingBot.personality = config.personality;
+            existingBot.isBot = true;
+            existingBot.isHost = false;
+            return;
+        }
+
+        const [botName] = chooseBotNames(1, unavailableNames);
+        unavailableNames.push(botName);
+
+        gameState.players[botId] = createBot({
             ...config,
-            name: botNames[index],
+            name: botName,
             playerNumber
         });
-
-        gameState.players[bot.id] = bot;
     });
 }
 

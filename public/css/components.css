@@ -77,12 +77,17 @@
 
 .player-list__item {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 12px;
     min-height: 48px;
     border-left: 2px solid var(--player-color, var(--cyan));
     padding: 10px 12px;
     background: rgba(0, 217, 255, 0.045);
+}
+
+.player-list__item.is-bot {
+    align-items: flex-start;
 }
 
 .scoreboard-player {
@@ -127,6 +132,37 @@
 .player-score {
     color: var(--cyan-light);
     font-variant-numeric: tabular-nums;
+}
+
+.bot-config-controls {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    width: 100%;
+    padding-left: 22px;
+}
+
+.bot-config-field {
+    display: grid;
+    gap: 4px;
+    color: var(--cyan-light);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.bot-config-field select {
+    min-width: 0;
+    border: 1px solid rgba(0, 217, 255, 0.65);
+    padding: 6px;
+    color: var(--text);
+    background: #030a12;
+    font-size: 0.76rem;
+}
+
+.bot-config-field select:disabled {
+    opacity: 0.58;
 }
 
 .player-vehicle--blue {

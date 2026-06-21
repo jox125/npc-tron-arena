@@ -14,6 +14,11 @@ export const clientSession = {
     currentPlayerId: null,
     lobbyPlayers: [],
     currentBotConfigs: [],
+    botConfigDrafts: [
+        { difficulty: 'EASY', personality: 'SURVIVOR' },
+        { difficulty: 'EASY', personality: 'SURVIVOR' },
+        { difficulty: 'EASY', personality: 'SURVIVOR' }
+    ],
     currentGameStatus: 'LOBBY',
     currentGameMode: 'MULTIPLAYER',
     currentWinsRequired: 3,

@@ -11,6 +11,7 @@ import {
 import { clientSession } from './state.js';
 
 const joinForm = document.querySelector('#join-form');
+const lobbyPlayerList = document.querySelector('#lobby-player-list');
 const playerNameInput = document.querySelector('#player-name');
 const joinButton = document.querySelector('#join-button');
 const startGameButton = document.querySelector('#start-game-button');
@@ -113,10 +114,26 @@ export function registerControls(socket) {
         const opponentCount = Number(botsNumberSelect.value);
         const configs = buildBotConfigs(opponentCount);
 
-        socket.emit('UPDATE_BOT_SETTINGS', {
-            opponentCount,
-            configs
-        });
+        emitBotSettings(socket, opponentCount, configs);
+    });
+
+    lobbyPlayerList.addEventListener('change', event => {
+        const select = event.target.closest('[data-bot-config-field]');
+        if (!select) return;
+
+        const botIndex = Number(select.dataset.botIndex);
+        const field = select.dataset.botConfigField;
+        const opponentCount = Number(botsNumberSelect.value);
+        const draft = clientSession.botConfigDrafts[botIndex];
+
+        if (!draft || !['difficulty', 'personality'].includes(field)) return;
+
+        clientSession.botConfigDrafts[botIndex] = {
+            ...draft,
+            [field]: select.value
+        };
+
+        emitBotSettings(socket, opponentCount, buildBotConfigs(opponentCount));
     });
 }
 
@@ -136,12 +153,12 @@ function registerAudioControls() {
 }
 
 function buildBotConfigs(opponentCount) {
-    const existingConfigs = clientSession.currentBotConfigs;
+    return clientSession.botConfigDrafts.slice(0, opponentCount);
+}
 
-    return Array.from({ length: opponentCount }, (_, index) => {
-        return existingConfigs[index] ?? {
-            difficulty: 'EASY',
-            personality: 'SURVIVOR'
-        };
+function emitBotSettings(socket, opponentCount, configs) {
+    socket.emit('UPDATE_BOT_SETTINGS', {
+        opponentCount,
+        configs
     });
 }

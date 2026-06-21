@@ -136,7 +136,11 @@ export function registerSocketEvents(socket) {
         clientSession.lobbyPlayers = players;
         const currentPlayer = findCurrentPlayer(players);
 
-        updateLobbyPlayers(players);
+        updateLobbyPlayers(
+            players,
+            clientSession.currentPlayerId,
+            clientSession.currentGameMode
+        );
         updateLobbyActions(players, clientSession.currentPlayerId);
         updateMatchSettings(
             currentPlayer,
@@ -164,6 +168,15 @@ function handleGameStateUpdate(gameState) {
     clientSession.currentGameMode = gameState.gameMode;
     clientSession.currentWinsRequired = gameState.winsRequired;
     clientSession.currentBotConfigs = gameState.botConfigs ?? [];
+    syncBotConfigDrafts(clientSession.currentBotConfigs);
+
+    if (gameState.gameStatus === 'LOBBY') {
+        updateLobbyPlayers(
+            players,
+            clientSession.currentPlayerId,
+            gameState.gameMode
+        );
+    }
 
     updateBotSettings(currentPlayer, clientSession.currentBotConfigs);
     updateGameMode(currentPlayer, gameState.gameMode);
@@ -232,6 +245,12 @@ function showSinglePlayerActive(message) {
     joinButton.disabled = true;
     joinButton.textContent = 'Single player mode';
     showJoinMessage(message);
+}
+
+function syncBotConfigDrafts(configs) {
+    configs.forEach((config, index) => {
+        clientSession.botConfigDrafts[index] = { ...config };
+    });
 }
 
 function showNewSystemNotice(notice) {
