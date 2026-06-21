@@ -16,6 +16,7 @@ import {
     showSystemNotice,
     updateArenaIdentity,
     updateGameMode,
+    updateBotSettings,
     updateGameTimer,
     updateLobbyActions,
     updateLobbyPlayers,
@@ -148,6 +149,10 @@ export function registerSocketEvents(socket) {
     socket.on('GAME_STATE_UPDATE', gameState => {
         handleGameStateUpdate(gameState);
     });
+
+    socket.on('BOT_SETTINGS_ERROR', ({ message }) => {
+        showStartError(message);
+    });
 }
 
 function handleGameStateUpdate(gameState) {
@@ -158,7 +163,9 @@ function handleGameStateUpdate(gameState) {
     clientSession.currentGameStatus = gameState.gameStatus;
     clientSession.currentGameMode = gameState.gameMode;
     clientSession.currentWinsRequired = gameState.winsRequired;
+    clientSession.currentBotConfigs = gameState.botConfigs ?? [];
 
+    updateBotSettings(currentPlayer, clientSession.currentBotConfigs);
     updateGameMode(currentPlayer, gameState.gameMode);
     updateMatchSettings(currentPlayer, gameState.winsRequired);
     updateGameTimer(gameState);

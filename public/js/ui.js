@@ -23,6 +23,7 @@ export {
     showHostChanged,
     showStartError,
     updateGameTimer,
+    updateBotSettings,
     updateGameMode,
     updateLobbyActions,
     updateMatchSettings,

@@ -123,3 +123,8 @@ function updateBotSettingsVisibility(isSinglePlayer, isHost) {
     botOpponentsSetting.classList.toggle('hidden', !isSinglePlayer);
     botsNumberSelect.disabled = !isHost;
 }
+
+export function updateBotSettings(currentPlayer, botConfigs) {
+    botsNumberSelect.value = String(botConfigs.length || 1);
+    botsNumberSelect.disabled = currentPlayer?.isHost !== true;
+}

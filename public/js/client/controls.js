@@ -24,6 +24,7 @@ const resumeGameButton = document.querySelector('#resume-game-button');
 const quitMatchButton = document.querySelector('#quit-match-button');
 const audioToggleButtons =
     document.querySelectorAll('[data-audio-setting]');
+const botsNumberSelect = document.querySelector('#bots-number');
 
 /**
  * Connects browser controls to Socket.IO commands.
@@ -107,6 +108,16 @@ export function registerControls(socket) {
         quitMatchButton.disabled = true;
         socket.emit('QUIT_MATCH');
     });
+
+    botsNumberSelect.addEventListener('change', () => {
+        const opponentCount = Number(botsNumberSelect.value);
+        const configs = buildBotConfigs(opponentCount);
+
+        socket.emit('UPDATE_BOT_SETTINGS', {
+            opponentCount,
+            configs
+        });
+    });
 }
 
 function registerAudioControls() {
@@ -121,5 +132,16 @@ function registerAudioControls() {
             const enabled = button.getAttribute('aria-pressed') !== 'true';
             setAudioSetting(setting, enabled);
         });
+    });
+}
+
+function buildBotConfigs(opponentCount) {
+    const existingConfigs = clientSession.currentBotConfigs;
+
+    return Array.from({ length: opponentCount }, (_, index) => {
+        return existingConfigs[index] ?? {
+            difficulty: 'EASY',
+            personality: 'SURVIVOR'
+        };
     });
 }
