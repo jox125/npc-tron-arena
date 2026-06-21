@@ -75,12 +75,6 @@ export function registerSocketEvents(socket) {
         playerNameInput.select();
     });
 
-    socket.on('connect_error', error => {
-        if (error.data?.code !== 'SINGLE_PLAYER_ACTIVE') return;
-
-        showSinglePlayerActive(error.data.message);
-    });
-
     socket.on('LEAVE_LOBBY_SUCCESS', () => {
         clientSession.currentPlayerId = null;
         playerNameInput.disabled = false;
