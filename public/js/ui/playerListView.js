@@ -94,6 +94,7 @@ function createPlayerItem(player, className, options = {}) {
     item.append(color, name, score, statusIcons);
 
     if (className === 'player-list__item' && player.isBot) {
+        item.append(createBotHelpButton(player));
         item.append(createBotConfigControls(player, options.canEditBots));
     }
 
@@ -103,6 +104,21 @@ function createPlayerItem(player, className, options = {}) {
 function updatePlayerItem(item, player) {
     const score = item.querySelector('.player-score');
     score.textContent = `${player.score ?? 0} wins`;
+}
+
+function createBotHelpButton(player) {
+    const button = document.createElement('button');
+
+    button.className = 'bot-help-button';
+    button.type = 'button';
+    button.dataset.botHelp = 'true';
+    button.setAttribute(
+        'aria-label',
+        `Show configuration help for ${player.name}`
+    );
+    button.textContent = '?';
+
+    return button;
 }
 
 function createBotConfigControls(player, canEditBots) {

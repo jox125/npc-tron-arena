@@ -30,6 +30,116 @@
     will-change: transform;
 }
 
+.bot-help-modal {
+    position: fixed;
+    z-index: 30;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 18px;
+}
+
+.bot-help-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(2, 5, 10, 0.78);
+    backdrop-filter: blur(6px);
+}
+
+.bot-help-modal__panel {
+    position: relative;
+    z-index: 1;
+    width: min(680px, 100%);
+    border: 1px solid rgba(0, 217, 255, 0.62);
+    padding: 28px;
+    color: var(--text);
+    text-align: left;
+    background:
+        linear-gradient(rgba(0, 217, 255, 0.075), transparent),
+        rgba(3, 10, 18, 0.96);
+    box-shadow:
+        0 0 36px rgba(0, 217, 255, 0.22),
+        inset 0 0 30px rgba(0, 217, 255, 0.08);
+}
+
+.bot-help-modal__close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    cursor: pointer;
+    border: 1px solid var(--cyan);
+    width: 34px;
+    height: 34px;
+    color: var(--cyan-light);
+    background: rgba(0, 217, 255, 0.08);
+    font: inherit;
+    font-size: 1.3rem;
+    line-height: 1;
+}
+
+.bot-help-modal__close:hover,
+.bot-help-modal__close:focus-visible {
+    color: #001016;
+    background: var(--cyan);
+}
+
+.bot-help-modal__eyebrow {
+    margin: 0 0 8px;
+    color: var(--cyan);
+    font-size: 0.76rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.bot-help-modal h2 {
+    margin: 0 0 12px;
+    font-size: clamp(1.6rem, 4vw, 2.5rem);
+    text-transform: uppercase;
+}
+
+.bot-help-modal__intro,
+.bot-help-modal__hint {
+    color: var(--muted);
+    line-height: 1.5;
+}
+
+.bot-help-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    margin: 22px 0;
+}
+
+.bot-help-grid article {
+    border: 1px solid rgba(0, 217, 255, 0.22);
+    padding: 14px;
+    background: rgba(0, 217, 255, 0.045);
+}
+
+.bot-help-grid h3 {
+    margin: 0 0 12px;
+    color: var(--cyan-light);
+    text-transform: uppercase;
+}
+
+.bot-help-grid dl {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+}
+
+.bot-help-grid dt {
+    color: var(--cyan);
+    font-weight: 800;
+}
+
+.bot-help-grid dd {
+    margin: -6px 0 8px;
+    color: var(--muted);
+    line-height: 1.45;
+}
+
 .winner-celebration {
     position: absolute;
     z-index: 0;
@@ -97,4 +207,3 @@
     min-width: min(620px, calc(100vw - 32px));
     justify-items: center;
 }
-

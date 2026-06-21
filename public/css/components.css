@@ -76,6 +76,7 @@
 }
 
 .player-list__item {
+    position: relative;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -140,6 +141,33 @@
     gap: 8px;
     width: 100%;
     padding-left: 22px;
+}
+
+.bot-help-button {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    cursor: pointer;
+    display: grid;
+    width: 20px;
+    height: 20px;
+    place-items: center;
+    border: 1px solid rgba(156, 244, 255, 0.75);
+    border-radius: 50%;
+    padding: 0;
+    color: var(--cyan-light);
+    background: rgba(0, 217, 255, 0.08);
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 900;
+    line-height: 1;
+}
+
+.bot-help-button:hover,
+.bot-help-button:focus-visible {
+    color: #001016;
+    background: var(--cyan-light);
+    box-shadow: 0 0 16px rgba(0, 217, 255, 0.5);
 }
 
 .bot-config-field {

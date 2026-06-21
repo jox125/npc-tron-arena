@@ -147,6 +147,63 @@
         </div>
     </section>
 
+    <div
+        id="bot-help-modal"
+        class="bot-help-modal hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="bot-help-title"
+    >
+        <div class="bot-help-modal__backdrop" data-bot-help-close></div>
+        <section class="bot-help-modal__panel" tabindex="-1">
+            <button
+                id="bot-help-close"
+                class="bot-help-modal__close"
+                type="button"
+                aria-label="Close bot configuration help"
+                data-bot-help-close
+            >
+                ×
+            </button>
+            <p class="bot-help-modal__eyebrow">NPC tuning guide</p>
+            <h2 id="bot-help-title">Bot configuration</h2>
+            <p class="bot-help-modal__intro">
+                Difficulty changes how effectively a bot uses its personality.
+                Personality changes what the bot tries to prioritize during a round.
+            </p>
+
+            <div class="bot-help-grid">
+                <article>
+                    <h3>Difficulty</h3>
+                    <dl>
+                        <dt>Easy</dt>
+                        <dd>Slower reactions, shorter planning and more mistakes.</dd>
+                        <dt>Medium</dt>
+                        <dd>Balanced reactions, planning distance and risk-taking.</dd>
+                        <dt>Hard</dt>
+                        <dd>Faster reactions, longer planning and fewer missed chances.</dd>
+                    </dl>
+                </article>
+
+                <article>
+                    <h3>Personality</h3>
+                    <dl>
+                        <dt>Survivor</dt>
+                        <dd>Prefers open space and safer turns over aggressive pressure.</dd>
+                        <dt>Hunter</dt>
+                        <dd>Looks for opponents and tries to cut off their movement.</dd>
+                        <dt>Collector</dt>
+                        <dd>Values power-ups and may take extra risks to reach them.</dd>
+                    </dl>
+                </article>
+            </div>
+
+            <p class="bot-help-modal__hint">
+                Example: a Hard Hunter should feel much more dangerous than an Easy Hunter.
+            </p>
+        </section>
+    </div>
+
     <section id="game-screen" class="screen hidden">
         <aside id="scoreboard" aria-label="Scoreboard">
             <section id="game-timer" class="game-timer" aria-label="Game timer">

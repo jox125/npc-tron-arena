@@ -12,6 +12,8 @@ import { clientSession } from './state.js';
 
 const joinForm = document.querySelector('#join-form');
 const lobbyPlayerList = document.querySelector('#lobby-player-list');
+const botHelpModal = document.querySelector('#bot-help-modal');
+const botHelpCloseButton = document.querySelector('#bot-help-close');
 const playerNameInput = document.querySelector('#player-name');
 const joinButton = document.querySelector('#join-button');
 const startGameButton = document.querySelector('#start-game-button');
@@ -26,6 +28,7 @@ const quitMatchButton = document.querySelector('#quit-match-button');
 const audioToggleButtons =
     document.querySelectorAll('[data-audio-setting]');
 const botsNumberSelect = document.querySelector('#bots-number');
+let botHelpPreviousFocus = null;
 
 /**
  * Connects browser controls to Socket.IO commands.
@@ -34,6 +37,12 @@ export function registerControls(socket) {
     registerAudioControls();
 
     document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && !botHelpModal.classList.contains('hidden')) {
+            event.preventDefault();
+            closeBotHelp();
+            return;
+        }
+
         if (event.key !== 'Escape' || event.repeat) return;
 
         const canPause =
@@ -135,6 +144,19 @@ export function registerControls(socket) {
 
         emitBotSettings(socket, opponentCount, buildBotConfigs(opponentCount));
     });
+
+    lobbyPlayerList.addEventListener('click', event => {
+        const helpButton = event.target.closest('[data-bot-help]');
+        if (!helpButton) return;
+
+        openBotHelp(helpButton);
+    });
+
+    botHelpModal.addEventListener('click', event => {
+        if (!event.target.closest('[data-bot-help-close]')) return;
+
+        closeBotHelp();
+    });
 }
 
 function registerAudioControls() {
@@ -161,4 +183,20 @@ function emitBotSettings(socket, opponentCount, configs) {
         opponentCount,
         configs
     });
+}
+
+function openBotHelp(trigger) {
+    botHelpPreviousFocus = trigger;
+    botHelpModal.classList.remove('hidden');
+    botHelpCloseButton.focus();
+}
+
+function closeBotHelp() {
+    botHelpModal.classList.add('hidden');
+
+    if (botHelpPreviousFocus?.isConnected) {
+        botHelpPreviousFocus.focus();
+    }
+
+    botHelpPreviousFocus = null;
 }
