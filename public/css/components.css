@@ -75,7 +75,16 @@
     list-style: none;
 }
 
-.player-list__item,
+.player-list__item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 48px;
+    border-left: 2px solid var(--player-color, var(--cyan));
+    padding: 10px 12px;
+    background: rgba(0, 217, 255, 0.045);
+}
+
 .scoreboard-player {
     display: flex;
     flex-direction: column;
