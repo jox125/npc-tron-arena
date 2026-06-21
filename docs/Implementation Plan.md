@@ -366,18 +366,28 @@ Saada kindel veakood, näiteks:
 SINGLE_PLAYER_ACTIVE
 ```
 
-#### Kiht B: uue Socket.IO ühenduse blokeerimine
+#### Kiht B: lobbyga liitumise blokeerimine ka olemasolevatel socket'itel
 
-Lisa Socket.IO connection middleware või connection'i alguses kontroll, mis keeldub uuest ühendusest, kui single-player režiim on juba aktiivne.
+Ära katkesta Socket.IO ühendust ainult seetõttu, et single-player režiim on
+aktiivne. Luba brauseril serveriga ühenduda ja `GAME_STATE_UPDATE` sündmusi
+vastu võtta, et UI saaks hiljem multiplayer režiimi taastumisel automaatselt
+uuesti liitumist lubada.
+
+Server peab siiski keelduma igast `JOIN_LOBBY` katsest, kui single-player
+režiim on aktiivne. See katab ka need socket'id, mis olid serveriga ühendatud
+enne režiimivahetust, kuid polnud veel lobby'ga liitunud.
 
 Arvesta järgmiste juhtudega:
 
 - hosti olemasolev socket peab jääma ühendatuks;
-- enne režiimivahetust ühendunud, kuid lobby'ga veel liitumata socket ei tohi hiljem liituda;
+- enne režiimivahetust ühendunud, kuid lobby'ga veel liitumata socket ei tohi single-player režiimis hiljem liituda;
 - hosti disconnect lõpetab üksikmängu ja server taastab vaikimisi multiplayer lobby, et host saaks uuesti ühenduda;
 - serveri kontroll peab toimima ka siis, kui keegi saadab sündmusi käsitsi DevTools'ist.
 
-Võimalusel saada enne katkestamist arusaadav põhjus, et teise brauseri UI saaks näidata “Single-player match is active”.
+`JOIN_LOBBY` tagasilükkamisel saada arusaadav põhjus, et teise brauseri UI
+saaks näidata “Single-player match is active”. Kui host lülitab tagasi
+multiplayer režiimi, saab sama ühendatud brauser serveri `GAME_STATE_UPDATE`
+põhjal join-nupu uuesti aktiivseks muuta.
 
 **Käsitest:**
 
@@ -806,8 +816,8 @@ Minimaalne kasulik testikomplekt:
 - lubatud 1–3 boti;
 - tundmatu difficulty/personality lükatakse tagasi;
 - id, number ja värv on unikaalsed;
-- difficulty multiplier annab järjestuse `Easy < Medium < Hard`;
-- nähtav effectiveness põhineb samal arvutusel.
+- bot ei saa kunagi hostiks;
+- botide arvu vähendamisel säilivad allesjäänud botid ja eemaldatakse ainult üleliigsed.
 
 #### NPC taju
 
