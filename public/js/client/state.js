@@ -13,6 +13,7 @@ export const renderState = {
 export const clientSession = {
     currentPlayerId: null,
     lobbyPlayers: [],
+    currentBotConfigs: [],
     currentGameStatus: 'LOBBY',
     currentGameMode: 'MULTIPLAYER',
     currentWinsRequired: 3,

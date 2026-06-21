@@ -25,6 +25,16 @@ export function registerPlayerHandlers({io, socket, session}) {
             delete gameState.players[socket.id];
         }
 
+        const hasHumanPlayers = Object.values(gameState.players)
+            .some(player => player.isBot !== true);
+        if (!hasHumanPlayers) {
+            gameState.players = {};
+            session.resetEmptySession();
+            io.emit('ROOM_STATE_UPDATE', Object.values(gameState.players));
+            io.emit('GAME_STATE_UPDATE', gameState);
+            return;
+        }
+
         const playerCount = Object.keys(gameState.players).length;
 
         if (gameState.gameStatus === 'COUNTDOWN' && playerCount < 2) {

@@ -241,6 +241,7 @@ export function prepareNextRound() {
 export function resetGameToLobby() {
     if (Object.keys(gameState.players).length === 0) {
         gameState.gameMode = GAME_MODES.MULTIPLAYER;
+        gameState.botConfigs = [];
     }
 
     gameState.gameStatus = "LOBBY";

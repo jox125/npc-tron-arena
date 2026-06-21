@@ -5,6 +5,8 @@ const startGameButton = document.querySelector('#start-game-button');
 const leaveLobbyButton = document.querySelector('#leave-lobby-button');
 const startGameMessage = document.querySelector('#start-game-message');
 const gameModeSwitch = document.querySelector('#game-mode-switch');
+const botOpponentsSetting = document.querySelector('#bot-opponents-setting');
+const botsNumberSelect = document.querySelector('#bots-number')
 const winsRequiredSelect = document.querySelector('#wins-required');
 const roundStatus = document.querySelector('#round-status');
 const gameTimerNumber = document.querySelector('#game-timer-number');
@@ -45,6 +47,8 @@ export function updateGameMode(currentPlayer, gameMode) {
     lobbyModeText.textContent = isSinglePlayer
         ? 'Single-player lobby'
         : 'Lobby online';
+
+    updateBotSettingsVisibility(isSinglePlayer, isHost);
 }
 
 export function updateRoundStatus(gameState) {
@@ -113,4 +117,9 @@ export function showHostChanged(message) {
     startGameMessage.textContent = message;
     startGameMessage.classList.remove('error');
     startGameMessage.classList.add('notice');
+}
+
+function updateBotSettingsVisibility(isSinglePlayer, isHost) {
+    botOpponentsSetting.classList.toggle('hidden', !isSinglePlayer);
+    botsNumberSelect.disabled = !isHost;
 }

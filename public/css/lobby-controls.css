@@ -187,6 +187,14 @@
     opacity: 0.55;
 }
 
+.match-setting-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 124px;
+    grid-column: 1 / -1;
+    align-items: center;
+    gap: 12px;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .game-mode-switch__card {
         transition-duration: 1ms;

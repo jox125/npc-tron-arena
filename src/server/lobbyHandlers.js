@@ -73,7 +73,8 @@ export function registerLobbyHandlers({io, socket}) {
 
         delete gameState.players[socket.id];
 
-        if (Object.keys(gameState.players).length === 0) {
+        if (!hasHumanPlayers()) {
+            gameState.players = {};
             resetGameToLobby();
         }
 
@@ -207,4 +208,9 @@ function syncLobbyBots(configs) {
 
         gameState.players[bot.id] = bot;
     });
+}
+
+function hasHumanPlayers() {
+    return Object.values(gameState.players)
+        .some(player => player.isBot !== true);
 }
