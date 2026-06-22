@@ -1,9 +1,12 @@
+import {ARENA_HEIGHT, ARENA_WIDTH} from "./gameEngine.js";
+
 export const DIRECTIONS = Object.freeze({
     UP: 'UP',
     DOWN: 'DOWN',
     LEFT: 'LEFT',
     RIGHT: 'RIGHT'
 });
+const DANGER_SCAN_STEP = 4;
 
 export function getCurrentDirection(player) {
     if (
@@ -39,4 +42,40 @@ export function getCandidateDirections(player) {
     return directions.filter(
         direction => direction !== oppositeDirections[currentDirection]
     );
+}
+
+export function simulateStep(position, direction, distance) {
+    const result = { ...position };
+
+    switch (direction) {
+        case DIRECTIONS.RIGHT:
+            result.x = result.x + distance;
+            if (result.x > ARENA_WIDTH) {
+                result.x = result.x - ARENA_WIDTH;
+            }
+            break;
+        case DIRECTIONS.LEFT:
+            result.x = result.x - distance;
+            if (result.x < 0) {
+                result.x = result.x + ARENA_WIDTH;
+            }
+            break;
+        case DIRECTIONS.DOWN:
+            result.y = result.y + distance;
+            if (result.y > ARENA_HEIGHT) {
+                result.y = result.y - ARENA_HEIGHT;
+            }
+            break;
+        case DIRECTIONS.UP:
+            result.y = result.y - distance;
+            if (result.y < 0) {
+                result.y = result.y + ARENA_HEIGHT;
+            }
+            break;
+    }
+    return result;
+}
+
+export function distanceToDanger(player, direction, gameState, maxDistance) {
+
 }

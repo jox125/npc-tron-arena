@@ -4,7 +4,8 @@ import assert from 'node:assert/strict';
 import {
     DIRECTIONS,
     getCandidateDirections,
-    getCurrentDirection
+    getCurrentDirection,
+    simulateStep
 } from "../src/botController.js";
 
 test('invalid player input returns null', () => {
@@ -113,4 +114,70 @@ test('candidate directions return empty array when current direction is invalid'
     invalidPlayers.forEach(player => {
         assert.deepEqual(getCandidateDirections(player), []);
     });
+});
+
+test('simulateStep moves position in the requested direction', () => {
+    const cases = [
+        {
+            direction: DIRECTIONS.RIGHT,
+            expected: {x: 108, y: 100}
+        },
+        {
+            direction: DIRECTIONS.LEFT,
+            expected: {x: 92, y: 100}
+        },
+        {
+            direction: DIRECTIONS.DOWN,
+            expected: {x: 100, y: 108}
+        },
+        {
+            direction: DIRECTIONS.UP,
+            expected: {x: 100, y: 92}
+        }
+    ];
+
+    cases.forEach(({direction, expected}) => {
+        assert.deepEqual(
+            simulateStep({x: 100, y: 100}, direction, 8),
+            expected
+        );
+    });
+});
+
+test('simulateStep wraps across arena edges', () => {
+    const cases = [
+        {
+            position: {x: 798, y: 100},
+            direction: DIRECTIONS.RIGHT,
+            expected: {x: 6, y: 100}
+        },
+        {
+            position: {x: 2, y: 100},
+            direction: DIRECTIONS.LEFT,
+            expected: {x: 794, y: 100}
+        },
+        {
+            position: {x: 100, y: 798},
+            direction: DIRECTIONS.DOWN,
+            expected: {x: 100, y: 6}
+        },
+        {
+            position: {x: 100, y: 2},
+            direction: DIRECTIONS.UP,
+            expected: {x: 100, y: 794}
+        }
+    ];
+
+    cases.forEach(({position, direction, expected}) => {
+        assert.deepEqual(simulateStep(position, direction, 8), expected);
+    });
+});
+
+test('simulateStep does not mutate the original position', () => {
+    const position = {x: 798, y: 100};
+
+    const result = simulateStep(position, DIRECTIONS.RIGHT, 8);
+
+    assert.deepEqual(position, {x: 798, y: 100});
+    assert.notEqual(result, position);
 });
