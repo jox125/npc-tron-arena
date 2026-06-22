@@ -21,3 +21,22 @@ export function getCurrentDirection(player) {
 
     return null;
 }
+
+export function getCandidateDirections(player) {
+    const currentDirection = getCurrentDirection(player);
+
+    if (!currentDirection) {
+        return [];
+    }
+    const directions = Object.values(DIRECTIONS);
+    const oppositeDirections = {
+        [DIRECTIONS.LEFT]: DIRECTIONS.RIGHT,
+        [DIRECTIONS.RIGHT]: DIRECTIONS.LEFT,
+        [DIRECTIONS.UP]: DIRECTIONS.DOWN,
+        [DIRECTIONS.DOWN]: DIRECTIONS.UP
+    };
+
+    return directions.filter(
+        direction => direction !== oppositeDirections[currentDirection]
+    );
+}

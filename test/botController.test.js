@@ -1,7 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import {DIRECTIONS, getCurrentDirection} from "../src/botController.js";
+import {
+    DIRECTIONS,
+    getCandidateDirections,
+    getCurrentDirection
+} from "../src/botController.js";
 
 test('invalid player input returns null', () => {
     const invalidInputs = [
@@ -51,5 +55,62 @@ test('axis-aligned movement returns current direction', () => {
 
     validVelocities.forEach(({dx, dy, direction}) => {
         assert.equal(getCurrentDirection({dx, dy}), direction);
+    });
+});
+
+test('candidate directions return forward, left and right without reverse', () => {
+    const candidatesByVelocity = [
+        {
+            player: {dx: 4, dy: 0},
+            expected: [
+                DIRECTIONS.UP,
+                DIRECTIONS.DOWN,
+                DIRECTIONS.RIGHT
+            ]
+        },
+        {
+            player: {dx: -4, dy: 0},
+            expected: [
+                DIRECTIONS.UP,
+                DIRECTIONS.DOWN,
+                DIRECTIONS.LEFT
+            ]
+        },
+        {
+            player: {dx: 0, dy: 4},
+            expected: [
+                DIRECTIONS.DOWN,
+                DIRECTIONS.LEFT,
+                DIRECTIONS.RIGHT
+            ]
+        },
+        {
+            player: {dx: 0, dy: -4},
+            expected: [
+                DIRECTIONS.UP,
+                DIRECTIONS.LEFT,
+                DIRECTIONS.RIGHT
+            ]
+        }
+    ];
+
+    candidatesByVelocity.forEach(({player, expected}) => {
+        assert.deepEqual(
+            [...getCandidateDirections(player)].sort(),
+            [...expected].sort()
+        );
+    });
+});
+
+test('candidate directions return empty array when current direction is invalid', () => {
+    const invalidPlayers = [
+        null,
+        {dx: 0, dy: 0},
+        {dx: 3, dy: 4},
+        {dx: NaN, dy: 0}
+    ];
+
+    invalidPlayers.forEach(player => {
+        assert.deepEqual(getCandidateDirections(player), []);
     });
 });
