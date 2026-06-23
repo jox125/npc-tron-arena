@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
     DIRECTIONS,
+    distanceToDanger,
     getCandidateDirections,
     getCurrentDirection,
     simulateStep
@@ -181,3 +182,198 @@ test('simulateStep does not mutate the original position', () => {
     assert.deepEqual(position, {x: 798, y: 100});
     assert.notEqual(result, position);
 });
+
+test('distanceToDanger returns max distance when no danger is found', () => {
+    const player = createPlayer({
+        id: 'bot',
+        x: 100,
+        y: 100
+    });
+    const gameState = createGameState({
+        players: [player],
+        trails: []
+    });
+
+    assert.equal(
+        distanceToDanger(player, DIRECTIONS.RIGHT, gameState, 40),
+        40
+    );
+});
+
+test('distanceToDanger detects trail danger with collision buffer', () => {
+    const player = createPlayer({
+        id: 'bot',
+        x: 100,
+        y: 100
+    });
+    const gameState = createGameState({
+        players: [player],
+        trails: [
+            createTrail({
+                id: 'trail-danger',
+                x1: 120,
+                y1: 96,
+                x2: 120,
+                y2: 104
+            })
+        ]
+    });
+
+    assert.equal(
+        distanceToDanger(player, DIRECTIONS.RIGHT, gameState, 40),
+        16
+    );
+});
+
+test('distanceToDanger ignores player active trail segment', () => {
+    const player = createPlayer({
+        id: 'bot',
+        x: 100,
+        y: 100,
+        currentTrailId: 'active-trail'
+    });
+    const gameState = createGameState({
+        players: [player],
+        trails: [
+            createTrail({
+                id: 'active-trail',
+                x1: 104,
+                y1: 96,
+                x2: 104,
+                y2: 104
+            })
+        ]
+    });
+
+    assert.equal(
+        distanceToDanger(player, DIRECTIONS.RIGHT, gameState, 40),
+        40
+    );
+});
+
+test('distanceToDanger detects nearby other player', () => {
+    const player = createPlayer({
+        id: 'bot',
+        x: 100,
+        y: 100
+    });
+    const opponent = createPlayer({
+        id: 'opponent',
+        x: 116,
+        y: 100
+    });
+    const gameState = createGameState({
+        players: [player, opponent],
+        trails: []
+    });
+
+    assert.equal(
+        distanceToDanger(player, DIRECTIONS.RIGHT, gameState, 40),
+        8
+    );
+});
+
+test('distanceToDanger ignores self and eliminated players', () => {
+    const player = createPlayer({
+        id: 'bot',
+        x: 100,
+        y: 100
+    });
+    const eliminatedOpponent = createPlayer({
+        id: 'opponent',
+        x: 108,
+        y: 100,
+        isAlive: false
+    });
+    const gameState = createGameState({
+        players: [player, eliminatedOpponent],
+        trails: []
+    });
+
+    assert.equal(
+        distanceToDanger(player, DIRECTIONS.RIGHT, gameState, 40),
+        40
+    );
+});
+
+test('distanceToDanger detects trail danger across arena wrap', () => {
+    const player = createPlayer({
+        id: 'bot',
+        x: 790,
+        y: 100
+    });
+    const gameState = createGameState({
+        players: [player],
+        trails: [
+            createTrail({
+                id: 'wrapped-trail',
+                x1: 2,
+                y1: 96,
+                x2: 2,
+                y2: 104
+            })
+        ]
+    });
+
+    assert.equal(
+        distanceToDanger(player, DIRECTIONS.RIGHT, gameState, 40),
+        8
+    );
+});
+
+test('distanceToDanger detects nearby player across arena wrap', () => {
+    const player = createPlayer({
+        id: 'bot',
+        x: 790,
+        y: 100
+    });
+    const opponent = createPlayer({
+        id: 'opponent',
+        x: 2,
+        y: 100
+    });
+    const gameState = createGameState({
+        players: [player, opponent],
+        trails: []
+    });
+
+    assert.equal(
+        distanceToDanger(player, DIRECTIONS.RIGHT, gameState, 40),
+        4
+    );
+});
+
+function createGameState({players, trails}) {
+    return {
+        players: Object.fromEntries(
+            players.map(player => [player.id, player])
+        ),
+        trails
+    };
+}
+
+function createPlayer({
+    id,
+    x,
+    y,
+    currentTrailId,
+    isAlive = true
+}) {
+    return {
+        id,
+        x,
+        y,
+        currentTrailId,
+        isAlive
+    };
+}
+
+function createTrail({id, x1, y1, x2, y2}) {
+    return {
+        id,
+        x1,
+        y1,
+        x2,
+        y2
+    };
+}
