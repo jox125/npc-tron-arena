@@ -10,6 +10,10 @@ export const DIRECTIONS = Object.freeze({
     LEFT: 'LEFT',
     RIGHT: 'RIGHT'
 });
+
+// AI perception samples the future path in small increments. A 4px step is
+// small enough to avoid skipping over 5px trails plus the server collision
+// buffer, while still being cheap to run for a few bots.
 const SCAN_STEP = 4;
 const TRAIL_COLLISION_BUFFER = 4;
 const PLAYER_DANGER_BUFFER = 10;
@@ -60,6 +64,11 @@ const PERSONALITY_WEIGHTS = Object.freeze({
     })
 });
 
+/**
+ * Converts the player's current velocity vector into a named direction.
+ * Speed is intentionally ignored: frozen players may move at 2px/tick, but
+ * their direction is still determined only by the sign of dx/dy.
+ */
 export function getCurrentDirection(player) {
     if (
         !player ||
@@ -77,6 +86,11 @@ export function getCurrentDirection(player) {
     return null;
 }
 
+/**
+ * Returns the directions the bot is legally allowed to consider next.
+ * It includes going straight and turning left/right, but excludes reversing
+ * into the direction opposite to the current movement.
+ */
 export function getCandidateDirections(player) {
     const currentDirection = getCurrentDirection(player);
 
@@ -96,6 +110,10 @@ export function getCandidateDirections(player) {
     );
 }
 
+/**
+ * Predicts a future coordinate after moving in a direction for a distance.
+ * This is a pure helper: it returns a new object and never mutates position.
+ */
 export function simulateStep(position, direction, distance) {
     const result = {...position};
 
@@ -128,6 +146,11 @@ export function simulateStep(position, direction, distance) {
     return result;
 }
 
+/**
+ * Measures how far the bot can travel in a direction before hitting danger.
+ * Danger currently means a solid trail or the immediate collision radius of
+ * another living player. If no danger is found, maxDistance is returned.
+ */
 export function distanceToDanger(player, direction, gameState, maxDistance) {
 
     let currentPosition = {
@@ -153,6 +176,11 @@ export function distanceToDanger(player, direction, gameState, maxDistance) {
     return maxDistance;
 }
 
+/**
+ * Measures how far ahead the nearest collectible power-up is in a direction.
+ * Power-up collection uses the same radius rule as processPowerUpCollection:
+ * item radius plus the approximate 5px half-size of the cycle.
+ */
 export function distanceToNearestPowerUp(player, direction, gameState, maxDistance) {
     let currentPosition = {
         x: player.x,
@@ -175,6 +203,11 @@ export function distanceToNearestPowerUp(player, direction, gameState, maxDistan
     return maxDistance;
 }
 
+/**
+ * Measures how far ahead the nearest opponent is in a direction. This uses a
+ * wider scan radius than danger detection because Hunter bots use it as a
+ * strategic attraction target, not as an immediate crash warning.
+ */
 export function distanceToNearestOpponent(
     player,
     direction,
@@ -204,6 +237,11 @@ export function distanceToNearestOpponent(
     return maxDistance;
 }
 
+/**
+ * Computes a comparable score for one candidate direction.
+ * The returned breakdown is useful for tests and later tuning because each
+ * score component can be inspected separately.
+ */
 export function scoreDirection(player, direction, gameState, options = {}) {
     const settings = getDifficultySettings(player.difficulty);
     const personalityWeights = getPersonalityWeights(player.personality);
@@ -281,6 +319,8 @@ export function shouldBotDecide(
 ) {
     const currentDirection = getCurrentDirection(player);
     if (!currentDirection) {
+        // During countdown/lobby a bot may have no movement vector yet.
+        // In that state there is no meaningful left/right/straight decision.
         return {
             shouldDecide: false,
             reason: 'NO_DIRECTION'
@@ -297,6 +337,8 @@ export function shouldBotDecide(
     );
 
     if (dangerDistance <= DANGER_REACTION_DISTANCE) {
+        // Emergency decisions bypass nextDecisionAt so the bot can react to a
+        // wall or player directly ahead without waiting for its strategy timer.
         return {
             shouldDecide: true,
             reason: 'DANGER',
@@ -357,8 +399,8 @@ export function chooseBotDirection(
         .sort((first, second) => second.score - first.score);
     const chosen = scoredDirections[0];
 
-    // Etapp 11 kasutab seda runtime infot, et sama bot ei teeks uut
-    // strateegilist otsust igal 30 Hz serveri tick'il.
+    // To prevent bot decide every 30hz server tick, but rather difficulty
+    // based period.
     player.botRuntime = {
         ...player.botRuntime,
         nextDecisionAt: now + getDifficultySettings(player.difficulty)
@@ -383,6 +425,8 @@ function getDifficultySettings(difficulty) {
         DIFFICULTY_SETTINGS[BOT_DIFFICULTIES.MEDIUM];
 }
 
+// Unknown personalities fall back to SURVIVOR because survival-biased behavior
+// is the safest default if a malformed config ever reaches this layer.
 function getPersonalityWeights(personality) {
     return PERSONALITY_WEIGHTS[personality] ??
         PERSONALITY_WEIGHTS[BOT_PERSONALITIES.SURVIVOR];
@@ -404,16 +448,25 @@ function getPersonalityScore({
     return safetyBonus + opponentBonus + powerUpBonus;
 }
 
+// Converts "closer is better" distances into a positive score contribution.
+// A target at maxDistance or beyond contributes nothing.
 function getClosenessScore(distance, maxDistance) {
     if (distance >= maxDistance) return 0;
     return maxDistance - distance;
 }
 
+// Penalizes repeating the previous direction forever and gives a small boost
+// to alternatives. This helps avoid bots drawing endless predictable loops.
 function getDirectionDiversityScore(player, direction) {
     if (!player.botRuntime?.lastDirection) return 0;
     return player.botRuntime.lastDirection === direction ? -18 : 8;
 }
 
+/**
+ * Checks whether a sampled point overlaps any trail collision box.
+ * The player's currently growing trail segment is skipped, matching the
+ * server's real collision behavior and preventing instant false self-danger.
+ */
 function pointHitsTrail(point, player, trails) {
     for (let i = 0; i < (trails || []).length; i++) {
         const segment = {...trails[i]};
@@ -437,6 +490,10 @@ function pointHitsTrail(point, player, trails) {
     return false;
 }
 
+/**
+ * Checks immediate vehicle-to-vehicle danger. This is deliberately stricter
+ * than opponent attraction: it only treats very close players as crash threats.
+ */
 function pointHitsOtherPlayer(point, player, players) {
     const otherPlayers = Object.values(players || {});
 
@@ -463,6 +520,11 @@ function pointHitsOtherPlayer(point, player, players) {
     return false;
 }
 
+/**
+ * Tests a point against a rectangle while considering arena wrap. The point is
+ * checked at its real coordinate and at +/- arena-size copies, so a trail just
+ * across an edge can still be detected after wrapping.
+ */
 function pointInWrappedBox(point, minX, maxX, minY, maxY) {
     const wrappedXValues = [
         point.x,
@@ -482,11 +544,19 @@ function pointInWrappedBox(point, minX, maxX, minY, maxY) {
     );
 }
 
+/**
+ * Returns the shortest distance between two coordinates on one wrapped axis.
+ * Example: x=798 and x=2 are 4px apart in an 800px arena, not 796px.
+ */
 function wrappedAxisDistance(first, second, arenaSize) {
     const directDistance = Math.abs(first - second);
     return Math.min(directDistance, arenaSize - directDistance);
 }
 
+/**
+ * Checks whether a sampled point would collect any power-up.
+ * This is read-only; applying effects and removing the item happens elsewhere.
+ */
 function pointHitsPowerUp(point, powerUps) {
     for (const powerUp of powerUps || []) {
         const distanceX = wrappedAxisDistance(
@@ -507,6 +577,11 @@ function pointHitsPowerUp(point, powerUps) {
     return false;
 }
 
+/**
+ * Checks whether an opponent is close enough to be strategically interesting.
+ * This powers Hunter-style scoring and uses wrap-aware distance so edge cases
+ * behave naturally in the toroidal arena.
+ */
 function pointNearOpponent(point, player, players) {
     const otherPlayers = Object.values(players || {});
 
