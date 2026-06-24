@@ -37,8 +37,14 @@ export function updateScoreboard(players, currentPlayerId) {
     const hash = JSON.stringify(
         players.map(player => ({
             id: player.id,
+            color: player.color,
+            isBot: player.isBot,
+            isCurrentPlayer: player.id === currentPlayerId,
+            isHost: player.isHost,
+            name: player.name,
+            playerNumber: player.playerNumber,
             score: player.score
-        }))
+        })).sort((first, second) => first.id.localeCompare(second.id))
     );
 
     if (hash === lastScoreboardHash) return;
@@ -79,19 +85,14 @@ function createPlayerItem(player, className, options = {}) {
     const statusIcons = document.createElement('div');
 
     item.className = className;
-    item.classList.toggle('is-bot', player.isBot === true);
-    item.style.setProperty('--player-color', player.color);
     color.className = 'player-color';
     name.className = 'player-name';
-    name.textContent =
-        `P${player.playerNumber} · ${player.name}`
-        + `${player.isHost ? ' (Host)' : ''}`;
     score.className = 'player-score';
-    score.textContent = `${player.score ?? 0} wins`;
     statusIcons.className = 'player-status-icons';
     statusIcons.id = `status-${player.id}`;
 
     item.append(color, name, score, statusIcons);
+    updatePlayerItem(item, player);
 
     if (className === 'player-list__item' && player.isBot) {
         item.append(createBotHelpButton(player));
@@ -102,7 +103,14 @@ function createPlayerItem(player, className, options = {}) {
 }
 
 function updatePlayerItem(item, player) {
+    const name = item.querySelector('.player-name');
     const score = item.querySelector('.player-score');
+
+    item.classList.toggle('is-bot', player.isBot === true);
+    item.style.setProperty('--player-color', player.color);
+    name.textContent =
+        `P${player.playerNumber} · ${player.name}`
+        + `${player.isHost ? ' (Host)' : ''}`;
     score.textContent = `${player.score ?? 0} wins`;
 }
 

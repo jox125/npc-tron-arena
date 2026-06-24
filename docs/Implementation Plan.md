@@ -484,7 +484,7 @@ NPC 2: Nova   | Hunter   | Medium | Effectiveness 7/10
 NPC 3: Cipher | Collector| Hard   | Effectiveness 9/10
 ```
 
-Lobby mängijate nimekirjas ja scoreboard'il lisa botile märge `(NPC)`. Selleks täienda `createPlayerItem()` funktsiooni, kuid ära muuda inimese märgistust.
+Lobby mängijate nimekirjas ja scoreboard'il lisa botile märge `(Bot)`. Selleks täienda `createPlayerItem()` funktsiooni, kuid ära muuda inimese märgistust.
 
 **Valmis, kui:** kasutaja saab enne mängu aru, mitu vastast tuleb ja kuidas igaüks tõenäoliselt käitub.
 
@@ -809,7 +809,7 @@ Vaata üle ka `ensureHost()`: see peab valima uue hosti ainult inimmängijate se
 
 ### Etapp 16: kohanda tulemused ja nähtav info
 
-1. Lobby nimekiri näitab `(NPC)` märget.
+1. Lobby nimekiri näitab `(Bot)` märget.
 2. Scoreboard näitab NPC-sid samamoodi nagu inimesi.
 3. Vooru tulemused näitavad NPC nime, kohta ja võitude arvu.
 4. Kui NPC võidab matši, peab pealkiri olema loomulik, näiteks `Vector wins the match`.
@@ -817,7 +817,7 @@ Vaata üle ka `ensureHost()`: see peab valima uue hosti ainult inimmängijate se
 6. Kui inimene sureb single-player voorus, näita tulemusi kohe ning võitjaks valitud NPC peab olema selgelt nähtav.
 7. Ära näita NPC-le mõeldud pause/quit nuppe eraldi. UI kuvatakse ainult päris kliendile.
 
-Kontrolli `updateScoreboard()` cache'i. Praegune hash sisaldab ainult `id` ja `score`; NPC nime, hosti staatuse või konfiguratsiooni muutus ei pruugi olemasolevat rida uuendada. Täienda hash'i vajalike väljadega või uuenda mängijaelemendi kõiki muutuvaid osi.
+Kontrolli `updateScoreboard()` cache'i. Hash peab sisaldama kõiki scoreboard'il nähtavaid välju, näiteks `id`, `name`, `playerNumber`, `color`, `score`, `isHost`, `isBot` ja current-player seisu. Uuenda mängijaelemendi kõiki muutuvaid osi, mitte ainult skoori.
 
 **Valmis, kui:** kasutaja saab lobby's, mängus ja tulemustes alati aru, kes on inimene ja kes NPC.
 
