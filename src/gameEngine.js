@@ -224,6 +224,7 @@ export function prepareNextRound() {
     gameState.eliminationOrder = [];
     gameState.eliminatedPlayers = {};
     gameState.trails = [];
+    gameState.powerUps = [];
 
     Object.values(gameState.players).forEach(player => {
         player.x = ARENA_WIDTH / 2;
@@ -231,8 +232,7 @@ export function prepareNextRound() {
         player.dx = 0;
         player.dy = 0;
         player.isAlive = true;
-        delete player.currentTrailId;
-        delete player.eliminatedAt;
+        resetRoundOnlyPlayerState(player);
     });
 
     return true;
@@ -258,6 +258,7 @@ export function resetGameToLobby() {
     gameState.eliminationOrder = [];
     gameState.eliminatedPlayers = {};
     gameState.trails = [];
+    gameState.powerUps = [];
 
     Object.values(gameState.players).forEach(player => {
         player.x = ARENA_WIDTH / 2;
@@ -266,7 +267,18 @@ export function resetGameToLobby() {
         player.dy = 0;
         player.isAlive = true;
         player.score = 0;
-        delete player.currentTrailId;
-        delete player.eliminatedAt;
+        resetRoundOnlyPlayerState(player);
     });
+}
+
+export function resetRoundOnlyPlayerState(player) {
+    player.isGhost = false;
+    player.isFrozen = false;
+    player.hasShield = false;
+    player.teleported = false;
+    delete player.botRuntime;
+    delete player.currentTrailId;
+    delete player.eliminatedAt;
+    delete player.freezeExpiresAt;
+    delete player.ghostExpiresAt;
 }

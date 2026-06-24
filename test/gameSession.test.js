@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 
 import {
     eliminatePlayer,
-    gameState
+    gameState,
+    prepareNextRound,
+    resetGameToLobby
 } from '../src/gameEngine.js';
 import { GAME_MODES } from '../src/server/gameModes.js';
 import { createGameSession } from '../src/server/gameSession.js';
@@ -103,6 +105,100 @@ test('multiplayer still waits while multiple players are alive', () => {
     assert.equal(gameState.roundResult, null);
 });
 
+test('round countdown clears bot runtime and temporary effects', () => {
+    resetState();
+    gameState.players.host = withRoundOnlyState(createHumanPlayer('host', {
+        playerNumber: 1
+    }));
+    gameState.players['bot-2'] = withRoundOnlyState(createBotPlayer('bot-2', {
+        playerNumber: 2,
+        x: 100,
+        y: 100,
+        dx: 4,
+        dy: 0
+    }));
+    const io = createFakeIo();
+    const session = createGameSession(io);
+
+    session.startRoundCountdown();
+
+    assertPlayerRoundStateCleared(gameState.players.host);
+    assertPlayerRoundStateCleared(gameState.players['bot-2']);
+    assert.equal(gameState.trails.length, 0);
+    assert.equal(gameState.gameStatus, 'COUNTDOWN');
+
+    session.resetEmptySession();
+});
+
+test('next round keeps bots but clears runtime, effects and arena entities', () => {
+    resetState();
+    gameState.gameStatus = 'GAME_OVER';
+    gameState.roundNumber = 2;
+    gameState.trails = [createTrail({
+        id: 'old-trail',
+        x1: 1,
+        y1: 1,
+        x2: 2,
+        y2: 2
+    })];
+    gameState.powerUps = [{ id: 'power-up', x: 100, y: 100 }];
+    gameState.players.host = withRoundOnlyState(createHumanPlayer('host', {
+        playerNumber: 1
+    }));
+    gameState.players['bot-2'] = withRoundOnlyState(createBotPlayer('bot-2', {
+        playerNumber: 2,
+        x: 100,
+        y: 100,
+        dx: 4,
+        dy: 0
+    }));
+
+    const prepared = prepareNextRound();
+
+    assert.equal(prepared, true);
+    assert.equal(gameState.players['bot-2'].isBot, true);
+    assert.equal(gameState.trails.length, 0);
+    assert.equal(gameState.powerUps.length, 0);
+    assertPlayerRoundStateCleared(gameState.players.host);
+    assertPlayerRoundStateCleared(gameState.players['bot-2']);
+});
+
+test('returning to lobby clears arena entities and temporary player state', () => {
+    resetState();
+    gameState.gameMode = GAME_MODES.SINGLE_PLAYER;
+    gameState.gameStatus = 'GAME_OVER';
+    gameState.botConfigs = [{ difficulty: 'EASY', personality: 'SURVIVOR' }];
+    gameState.trails = [createTrail({
+        id: 'old-trail',
+        x1: 1,
+        y1: 1,
+        x2: 2,
+        y2: 2
+    })];
+    gameState.powerUps = [{ id: 'power-up', x: 100, y: 100 }];
+    gameState.players.host = withRoundOnlyState(createHumanPlayer('host', {
+        playerNumber: 1
+    }));
+    gameState.players['bot-2'] = withRoundOnlyState(createBotPlayer('bot-2', {
+        playerNumber: 2,
+        x: 100,
+        y: 100,
+        dx: 4,
+        dy: 0
+    }));
+
+    resetGameToLobby();
+
+    assert.equal(gameState.gameMode, GAME_MODES.SINGLE_PLAYER);
+    assert.deepEqual(gameState.botConfigs, [
+        { difficulty: 'EASY', personality: 'SURVIVOR' }
+    ]);
+    assert.equal(gameState.trails.length, 0);
+    assert.equal(gameState.powerUps.length, 0);
+    assertPlayerRoundStateCleared(gameState.players.host);
+    assertPlayerRoundStateCleared(gameState.players['bot-2']);
+});
+
 function createHumanPlayer(id, { playerNumber }) {
     return {
         id,
@@ -133,6 +229,37 @@ function createBotPlayer(id, { playerNumber, x, y, dx, dy }) {
         isBot: true,
         score: 0
     };
+}
+
+function withRoundOnlyState(player) {
+    return {
+        ...player,
+        botRuntime: {
+            nextDecisionAt: 1000,
+            forceDecisionAt: 2000,
+            lastTurnAt: 500
+        },
+        currentTrailId: 'active-trail',
+        eliminatedAt: 123,
+        freezeExpiresAt: 456,
+        ghostExpiresAt: 789,
+        hasShield: true,
+        isFrozen: true,
+        isGhost: true,
+        teleported: true
+    };
+}
+
+function assertPlayerRoundStateCleared(player) {
+    assert.equal(player.botRuntime, undefined);
+    assert.equal(player.currentTrailId, undefined);
+    assert.equal(player.eliminatedAt, undefined);
+    assert.equal(player.freezeExpiresAt, undefined);
+    assert.equal(player.ghostExpiresAt, undefined);
+    assert.equal(player.hasShield, false);
+    assert.equal(player.isFrozen, false);
+    assert.equal(player.isGhost, false);
+    assert.equal(player.teleported, false);
 }
 
 function createTrail({ id, x1, y1, x2, y2 }) {

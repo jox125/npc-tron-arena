@@ -764,6 +764,10 @@ Hosti nõudvatel toimingutel kontrolli lisaks `player.isHost`.
 
 Kontrolli kõiki olekumuutusi:
 
+Kasuta round-only mängijaseisu puhastamiseks ühist helperit, et `botRuntime`,
+aktiivsed trail id-d, elimineerimise aeg ja ajutised power-up lipud ei lekiks
+uude vooru ega lobby'sse.
+
 #### Uus matš
 
 - botide score lähtestub;

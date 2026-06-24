@@ -5,6 +5,7 @@ import {
     finishRound,
     gameState,
     resetGameToLobby,
+    resetRoundOnlyPlayerState,
     startNewTrailSegment
 } from '../gameEngine.js';
 import {
@@ -79,8 +80,7 @@ export function createGameSession(io) {
             player.isAlive = true;
             player.dx = 0;
             player.dy = 0;
-            delete player.currentTrailId;
-            delete player.eliminatedAt;
+            resetRoundOnlyPlayerState(player);
         });
 
         io.emit('GAME_STATE_UPDATE', gameState);
