@@ -161,12 +161,16 @@ Raskusaste peab muutma vähemalt nelja mõõdetavat parameetrit:
 
 | Parameeter | Easy | Medium | Hard |
 |---|---:|---:|---:|
-| otsuste vahe | 500–750 ms | 250–450 ms | 100–220 ms |
-| ettevaatamise kaugus | 70 px | 140 px | 220 px |
-| hea otsuse rakendamise tõenäosus | 65% | 88% | 98% |
-| juhusliku vea tugevus | suur | keskmine | väike |
+| otsuste vahe | ~950 ms | ~420 ms | ~180 ms |
+| pöörde miinimumvahe | ~700 ms | ~360 ms | ~160 ms |
+| ettevaatamise kaugus | ~65 px | ~170 px | ~360 px |
+| hea otsuse rakendamise tõenäosus | ~55% | ~92% | ~99% |
+| juhusliku vea tugevus | väga suur | keskmine | väga väike |
 
-Väärtused on algsed häälestuspunktid, mitte lõplik tõde. Testi neid päris mängus ja muuda väikeste sammudega.
+Väärtused on häälestuspunktid, mitte füüsikareeglid. Kui Easy tundub liiga tark,
+suurenda tema otsuste vahet, pöörde miinimumvahet, `randomNoise` ja
+`mistakeChance` väärtust. Kui Hard tundub liiga nõrk, suurenda tema
+ettevaatamise kaugust ning vähenda müra ja eksimisvõimalust.
 
 ### 5.3. Raskus kui kordaja
 

@@ -915,8 +915,8 @@ test('chooseBotDirection updates botRuntime scheduling fields', () => {
     );
 
     assert.equal(decision.reason, 'STRATEGY');
-    assert.equal(player.botRuntime.nextDecisionAt, 1700);
-    assert.equal(player.botRuntime.forceDecisionAt, 3800);
+    assert.equal(player.botRuntime.nextDecisionAt, 1950);
+    assert.equal(player.botRuntime.forceDecisionAt, 4800);
     assert.equal(player.botRuntime.lastDirection, decision.direction);
 });
 

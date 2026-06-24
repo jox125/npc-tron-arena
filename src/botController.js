@@ -28,15 +28,15 @@ const STRATEGIC_DECISION_MULTIPLIER = 4;
 // and how much imperfect human-like noise is allowed into the score.
 const DIFFICULTY_SETTINGS = Object.freeze({
     [BOT_DIFFICULTIES.EASY]: Object.freeze({
-        lookAhead: 90,
-        decisionCooldownMs: 700,
-        minTurnIntervalMs: 520,
-        dangerReactionDistance: 28,
+        lookAhead: 65,
+        decisionCooldownMs: 950,
+        minTurnIntervalMs: 700,
+        dangerReactionDistance: 20,
         panicDistance: 8,
-        randomNoise: 45,
-        safetyWeight: 2.8,
-        switchThreshold: 40,
-        mistakeChance: 0.25
+        randomNoise: 80,
+        safetyWeight: 2.2,
+        switchThreshold: 70,
+        mistakeChance: 0.45
     }),
     [BOT_DIFFICULTIES.MEDIUM]: Object.freeze({
         lookAhead: 170,
@@ -50,15 +50,15 @@ const DIFFICULTY_SETTINGS = Object.freeze({
         mistakeChance: 0.08
     }),
     [BOT_DIFFICULTIES.HARD]: Object.freeze({
-        lookAhead: 280,
-        decisionCooldownMs: 240,
-        minTurnIntervalMs: 240,
-        dangerReactionDistance: 64,
+        lookAhead: 360,
+        decisionCooldownMs: 180,
+        minTurnIntervalMs: 160,
+        dangerReactionDistance: 80,
         panicDistance: 8,
-        randomNoise: 6,
-        safetyWeight: 4.2,
-        switchThreshold: 12,
-        mistakeChance: 0.02
+        randomNoise: 2,
+        safetyWeight: 4.8,
+        switchThreshold: 6,
+        mistakeChance: 0.005
     })
 });
 
