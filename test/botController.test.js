@@ -421,6 +421,72 @@ test('distanceToNearestPowerUp detects power-up across arena wrap', () => {
     );
 });
 
+test('distanceToNearestPowerUp ignores power-up when human is twice as close', () => {
+    const player = createBotPlayer({
+        id: 'bot',
+        x: 100,
+        y: 100,
+        dx: 4,
+        dy: 0
+    });
+    const human = createPlayer({
+        id: 'human',
+        x: 119,
+        y: 100
+    });
+    const gameState = createGameState({
+        players: [player, human],
+        trails: [],
+        powerUps: [
+            createPowerUp({
+                id: 'contested-powerup',
+                x: 124,
+                y: 100,
+                radius: 15
+            })
+        ]
+    });
+
+    assert.equal(
+        distanceToNearestPowerUp(player, DIRECTIONS.RIGHT, gameState, 40),
+        40
+    );
+});
+
+test('distanceToNearestPowerUp ignores power-up when another bot is twice as close', () => {
+    const player = createBotPlayer({
+        id: 'bot',
+        x: 100,
+        y: 100,
+        dx: 4,
+        dy: 0
+    });
+    const otherBot = createBotPlayer({
+        id: 'other-bot',
+        x: 119,
+        y: 100,
+        dx: 4,
+        dy: 0
+    });
+    const gameState = createGameState({
+        players: [player, otherBot],
+        trails: [],
+        powerUps: [
+            createPowerUp({
+                id: 'contested-powerup',
+                x: 124,
+                y: 100,
+                radius: 15
+            })
+        ]
+    });
+
+    assert.equal(
+        distanceToNearestPowerUp(player, DIRECTIONS.RIGHT, gameState, 40),
+        40
+    );
+});
+
 test('distanceToNearestOpponent returns max distance when no opponent is found', () => {
     const player = createPlayer({
         id: 'bot',

@@ -200,7 +200,14 @@ export function distanceToNearestPowerUp(player, direction, gameState, maxDistan
             direction,
             stepDistance
         );
-        if (pointHitsPowerUp(currentPosition, gameState.powerUps)) {
+        if (
+            pointHitsAvailablePowerUp(
+                currentPosition,
+                player,
+                gameState.powerUps,
+                gameState.players
+            )
+        ) {
             return distance;
         }
     }
@@ -598,11 +605,24 @@ function wrappedAxisDistance(first, second, arenaSize) {
     return Math.min(directDistance, arenaSize - directDistance);
 }
 
+function getWrappedDistance(first, second) {
+    const distanceX = wrappedAxisDistance(first.x, second.x, ARENA_WIDTH);
+    const distanceY = wrappedAxisDistance(first.y, second.y, ARENA_HEIGHT);
+
+    return Math.hypot(distanceX, distanceY);
+}
+
 /**
- * Checks whether a sampled point would collect any power-up.
- * This is read-only; applying effects and removing the item happens elsewhere.
+ * Checks whether a sampled point would collect an uncontested power-up.
+ * If another living player is at least twice as close to the same item, the
+ * bot ignores it instead of chasing a reward it will probably lose.
  */
-function pointHitsPowerUp(point, powerUps) {
+function pointHitsAvailablePowerUp(
+    point,
+    player,
+    powerUps,
+    players
+) {
     for (const powerUp of powerUps || []) {
         const distanceX = wrappedAxisDistance(
             point.x,
@@ -614,12 +634,52 @@ function pointHitsPowerUp(point, powerUps) {
             powerUp.y,
             ARENA_HEIGHT
         );
+        const sampledDistanceToPowerUp = Math.hypot(distanceX, distanceY);
 
-        if (Math.hypot(distanceX, distanceY) < powerUp.radius + 5) {
-            return true;
+        if (sampledDistanceToPowerUp < powerUp.radius + 5) {
+            const currentBotDistanceToPowerUp = getWrappedDistance(
+                player,
+                powerUp
+            );
+
+            return !isPowerUpContestedByCloserPlayer(
+                powerUp,
+                player,
+                players,
+                currentBotDistanceToPowerUp
+            );
         }
     }
     return false;
+}
+
+function isPowerUpContestedByCloserPlayer(
+    powerUp,
+    player,
+    players,
+    currentBotDistanceToPowerUp
+) {
+    const otherPlayers = Object.values(players || {});
+
+    return otherPlayers.some(otherPlayer => {
+        if (otherPlayer.id === player.id || otherPlayer.isAlive === false) {
+            return false;
+        }
+
+        const distanceX = wrappedAxisDistance(
+            otherPlayer.x,
+            powerUp.x,
+            ARENA_WIDTH
+        );
+        const distanceY = wrappedAxisDistance(
+            otherPlayer.y,
+            powerUp.y,
+            ARENA_HEIGHT
+        );
+        const otherDistance = Math.hypot(distanceX, distanceY);
+
+        return otherDistance <= currentBotDistanceToPowerUp / 2;
+    });
 }
 
 /**
