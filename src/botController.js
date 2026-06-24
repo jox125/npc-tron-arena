@@ -22,29 +22,43 @@ const SCAN_STEP = 4;
 const TRAIL_COLLISION_BUFFER = 4;
 const PLAYER_DANGER_BUFFER = 10;
 const OPPONENT_SCAN_RADIUS = 60;
-const DANGER_REACTION_DISTANCE = 48;
 const STRATEGIC_DECISION_MULTIPLIER = 4;
 
 // Difficulty controls how far ahead a bot sees, how often it reconsiders,
 // and how much imperfect human-like noise is allowed into the score.
 const DIFFICULTY_SETTINGS = Object.freeze({
     [BOT_DIFFICULTIES.EASY]: Object.freeze({
-        lookAhead: 120,
-        decisionCooldownMs: 550,
-        randomNoise: 30,
-        safetyWeight: 3
+        lookAhead: 90,
+        decisionCooldownMs: 700,
+        minTurnIntervalMs: 320,
+        dangerReactionDistance: 28,
+        panicDistance: 8,
+        randomNoise: 45,
+        safetyWeight: 2.8,
+        switchThreshold: 40,
+        mistakeChance: 0.25
     }),
     [BOT_DIFFICULTIES.MEDIUM]: Object.freeze({
-        lookAhead: 220,
-        decisionCooldownMs: 350,
-        randomNoise: 14,
-        safetyWeight: 3.5
+        lookAhead: 170,
+        decisionCooldownMs: 420,
+        minTurnIntervalMs: 220,
+        dangerReactionDistance: 44,
+        panicDistance: 8,
+        randomNoise: 18,
+        safetyWeight: 3.5,
+        switchThreshold: 25,
+        mistakeChance: 0.08
     }),
     [BOT_DIFFICULTIES.HARD]: Object.freeze({
-        lookAhead: 360,
-        decisionCooldownMs: 220,
-        randomNoise: 5,
-        safetyWeight: 4
+        lookAhead: 280,
+        decisionCooldownMs: 240,
+        minTurnIntervalMs: 140,
+        dangerReactionDistance: 64,
+        panicDistance: 8,
+        randomNoise: 6,
+        safetyWeight: 4.2,
+        switchThreshold: 12,
+        mistakeChance: 0.02
     })
 });
 
@@ -256,6 +270,7 @@ export function distanceToNearestOpponent(
 export function scoreDirection(player, direction, gameState, options = {}) {
     const settings = getDifficultySettings(player.difficulty);
     const personalityWeights = getPersonalityWeights(player.personality);
+    const currentDirection = getCurrentDirection(player);
     const lookAhead = options.lookAhead ?? settings.lookAhead;
     const random = options.random ?? Math.random;
 
@@ -293,16 +308,17 @@ export function scoreDirection(player, direction, gameState, options = {}) {
         personalityWeights.powerUp;
     const opponentScore = getClosenessScore(opponentDistance, lookAhead) *
         personalityWeights.opponent;
-    const directionDiversityScore = getDirectionDiversityScore(
+    const directionStabilityScore = getDirectionStabilityScore(
         player,
-        direction
+        direction,
+        currentDirection
     );
     const randomNoise = (random() - 0.5) * settings.randomNoise;
     const score = safetyScore +
         personalityScore +
         powerUpScore +
         opponentScore +
-        directionDiversityScore +
+        directionStabilityScore +
         randomNoise;
 
     return {
@@ -316,7 +332,7 @@ export function scoreDirection(player, direction, gameState, options = {}) {
             personalityScore,
             powerUpScore,
             opponentScore,
-            directionDiversityScore,
+            directionStabilityScore,
             randomNoise
         }
     };
@@ -346,10 +362,26 @@ export function shouldBotDecide(
         gameState,
         lookAhead
     );
+    const runtime = player.botRuntime ?? {};
 
-    if (dangerDistance <= DANGER_REACTION_DISTANCE) {
-        // Emergency decisions bypass nextDecisionAt so the bot can react to a
-        // wall or player directly ahead without waiting for its strategy timer.
+    if (dangerDistance <= settings.dangerReactionDistance) {
+        /**
+         * Danger may bypass the strategic cooldown, but not every tick. The
+         * minTurnInterval gives bots a human-like reaction limit and stops
+         * tight traps from becoming instant left/right jitter. Only a true
+         * panic distance can override that limit.
+         */
+        if (
+            dangerDistance > settings.panicDistance &&
+            !hasTurnIntervalElapsed(runtime, settings, now)
+        ) {
+            return {
+                shouldDecide: false,
+                reason: 'TURN_COOLDOWN',
+                dangerDistance
+            };
+        }
+
         return {
             shouldDecide: true,
             reason: 'DANGER',
@@ -357,7 +389,6 @@ export function shouldBotDecide(
         };
     }
 
-    const runtime = player.botRuntime ?? {};
     if (
         runtime.forceDecisionAt !== undefined &&
         now >= runtime.forceDecisionAt
@@ -405,10 +436,18 @@ export function chooseBotDirection(
         return null;
     }
 
+    const currentDirection = getCurrentDirection(player);
+    const settings = getDifficultySettings(player.difficulty);
+    const random = options.random ?? Math.random;
     const scoredDirections = candidates
         .map(direction => scoreDirection(player, direction, gameState, options))
         .sort((first, second) => second.score - first.score);
-    const chosen = scoredDirections[0];
+    const chosen = chooseScoredDirection(
+        scoredDirections,
+        currentDirection,
+        settings,
+        random
+    );
 
     /**
      * Store timing metadata so Etapp 11 can run bots every server tick while
@@ -416,12 +455,11 @@ export function chooseBotDirection(
      */
     player.botRuntime = {
         ...player.botRuntime,
-        nextDecisionAt: now + getDifficultySettings(player.difficulty)
-            .decisionCooldownMs,
-        forceDecisionAt: now + getDifficultySettings(player.difficulty)
-            .decisionCooldownMs * STRATEGIC_DECISION_MULTIPLIER,
+        nextDecisionAt: now + settings.decisionCooldownMs,
+        forceDecisionAt: now +
+            settings.decisionCooldownMs * STRATEGIC_DECISION_MULTIPLIER,
         lastDirection: chosen.direction,
-        lastTurnAt: chosen.direction === getCurrentDirection(player)
+        lastTurnAt: chosen.direction === currentDirection
             ? player.botRuntime?.lastTurnAt ?? 0
             : now
     };
@@ -507,11 +545,59 @@ function getClosenessScore(distance, maxDistance) {
     return maxDistance - distance;
 }
 
-// Penalizes repeating the previous direction forever and gives a small boost
-// to alternatives. This helps avoid bots drawing endless predictable loops.
-function getDirectionDiversityScore(player, direction) {
-    if (!player.botRuntime?.lastDirection) return 0;
-    return player.botRuntime.lastDirection === direction ? -18 : 8;
+function hasTurnIntervalElapsed(runtime, settings, now) {
+    return runtime.lastTurnAt === undefined ||
+        now - runtime.lastTurnAt >= settings.minTurnIntervalMs;
+}
+
+function chooseScoredDirection(
+    scoredDirections,
+    currentDirection,
+    settings,
+    random
+) {
+    const bestDirection = scoredDirections[0];
+    const currentDirectionScore = scoredDirections.find(
+        score => score.direction === currentDirection
+    );
+
+    /**
+     * Keep driving straight when the current path is safe enough and the best
+     * alternative is only slightly better. This creates decision inertia, so
+     * bots stop wobbling between equally good left/right options.
+     */
+    if (
+        currentDirectionScore &&
+        currentDirectionScore.safetyDistance > settings.dangerReactionDistance
+    ) {
+        const scoreGap = bestDirection.score - currentDirectionScore.score;
+        if (scoreGap <= settings.switchThreshold) {
+            return currentDirectionScore;
+        }
+    }
+
+    const safeDirections = scoredDirections.filter(
+        score => score.safetyDistance > settings.dangerReactionDistance
+    );
+
+    /**
+     * Lower difficulties sometimes pick the second-best safe option. That
+     * models hesitation or imperfect judgment without intentionally choosing a
+     * suicidal direction.
+     */
+    if (safeDirections.length > 1 && random() < settings.mistakeChance) {
+        return safeDirections[1];
+    }
+
+    return bestDirection;
+}
+
+// Rewards steadier movement instead of forcing constant direction variety.
+// The older diversity bonus made trapped bots over-correct unrealistically.
+function getDirectionStabilityScore(player, direction, currentDirection) {
+    if (direction === currentDirection) return 16;
+    if (player.botRuntime?.lastDirection === direction) return 4;
+    return 0;
 }
 
 /**

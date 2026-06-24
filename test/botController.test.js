@@ -750,6 +750,150 @@ test('bot decision ignores nextDecisionAt when danger is close', () => {
     assert.notEqual(decision.direction, DIRECTIONS.RIGHT);
 });
 
+test('bot decision respects turn interval for non-panic danger', () => {
+    const player = createBotPlayer({
+        id: 'bot',
+        x: 100,
+        y: 100,
+        dx: 4,
+        dy: 0,
+        botRuntime: {
+            lastTurnAt: 900,
+            nextDecisionAt: 2000
+        }
+    });
+    const gameState = createGameState({
+        players: [player],
+        trails: [
+            createTrail({
+                id: 'near-wall',
+                x1: 116,
+                y1: 96,
+                x2: 116,
+                y2: 104
+            })
+        ]
+    });
+
+    const readiness = shouldBotDecide(
+        player,
+        gameState,
+        1000,
+        deterministicOptions()
+    );
+
+    assert.deepEqual(readiness, {
+        shouldDecide: false,
+        reason: 'TURN_COOLDOWN',
+        dangerDistance: 12
+    });
+    assert.equal(
+        chooseBotDirection(player, gameState, 1000, deterministicOptions()),
+        null
+    );
+});
+
+test('bot decision can panic-turn inside critical danger distance', () => {
+    const player = createBotPlayer({
+        id: 'bot',
+        x: 100,
+        y: 100,
+        dx: 4,
+        dy: 0,
+        botRuntime: {
+            lastTurnAt: 900,
+            nextDecisionAt: 2000
+        }
+    });
+    const gameState = createGameState({
+        players: [player],
+        trails: [
+            createTrail({
+                id: 'panic-wall',
+                x1: 108,
+                y1: 96,
+                x2: 108,
+                y2: 104
+            })
+        ]
+    });
+
+    const readiness = shouldBotDecide(
+        player,
+        gameState,
+        1000,
+        deterministicOptions()
+    );
+    const decision = chooseBotDirection(
+        player,
+        gameState,
+        1000,
+        deterministicOptions()
+    );
+
+    assert.equal(readiness.shouldDecide, true);
+    assert.equal(readiness.reason, 'DANGER');
+    assert.notEqual(decision.direction, DIRECTIONS.RIGHT);
+});
+
+test('hard reacts to farther danger than easy', () => {
+    const easyBot = createBotPlayer({
+        id: 'easy-bot',
+        x: 100,
+        y: 100,
+        dx: 4,
+        dy: 0,
+        difficulty: BOT_DIFFICULTIES.EASY,
+        botRuntime: {
+            nextDecisionAt: 2000
+        }
+    });
+    const hardBot = createBotPlayer({
+        id: 'hard-bot',
+        x: 100,
+        y: 140,
+        dx: 4,
+        dy: 0,
+        difficulty: BOT_DIFFICULTIES.HARD,
+        botRuntime: {
+            nextDecisionAt: 2000
+        }
+    });
+    const easyGameState = createGameState({
+        players: [easyBot],
+        trails: [
+            createTrail({
+                id: 'easy-wall',
+                x1: 140,
+                y1: 96,
+                x2: 140,
+                y2: 104
+            })
+        ]
+    });
+    const hardGameState = createGameState({
+        players: [hardBot],
+        trails: [
+            createTrail({
+                id: 'hard-wall',
+                x1: 140,
+                y1: 136,
+                x2: 140,
+                y2: 144
+            })
+        ]
+    });
+
+    assert.equal(
+        shouldBotDecide(easyBot, easyGameState, 1000).reason,
+        'WAIT'
+    );
+    assert.equal(
+        shouldBotDecide(hardBot, hardGameState, 1000).reason,
+        'DANGER'
+    );
+});
+
 test('chooseBotDirection updates botRuntime scheduling fields', () => {
     const player = createBotPlayer({
         id: 'bot',
@@ -771,8 +915,8 @@ test('chooseBotDirection updates botRuntime scheduling fields', () => {
     );
 
     assert.equal(decision.reason, 'STRATEGY');
-    assert.equal(player.botRuntime.nextDecisionAt, 1550);
-    assert.equal(player.botRuntime.forceDecisionAt, 3200);
+    assert.equal(player.botRuntime.nextDecisionAt, 1700);
+    assert.equal(player.botRuntime.forceDecisionAt, 3800);
     assert.equal(player.botRuntime.lastDirection, decision.direction);
 });
 

@@ -589,7 +589,7 @@ score =
     + personalityScore
     + powerUpScore
     + opponentScore
-    + directionDiversityScore
+    + directionStabilityScore
     + randomNoise
 ```
 
@@ -599,15 +599,20 @@ Soovituslikud põhimõtted:
 - `SURVIVOR` annab suure lisakaalu vabale ruumile;
 - `HUNTER` eelistab ohutut suunda, mis vähendab kaugust vastaseni või lõikab tema võimalikku teed;
 - `COLLECTOR` eelistab power-up'i ainult siis, kui tee selleni pole ohtlik;
-- `directionDiversityScore` vähendab lõputut ühe mustri kordamist;
+- `directionStabilityScore` ja suuna-inerts vähendavad närvilist edasi-tagasi pööramist;
 - `randomNoise` tekitab inimlikku varieeruvust ja sõltub raskusest.
 
-Ära lase botil pöörata igal serveri tick'il. Kasuta `botRuntime.nextDecisionAt` aega.
+Ära lase botil pöörata igal serveri tick'il. Kasuta kahte eraldi ajapiirangut:
+
+- `botRuntime.nextDecisionAt` piirab strateegilisi ümberhindamisi;
+- `botRuntime.lastTurnAt` koos difficulty-põhise `minTurnIntervalMs` piirab füüsilisi pöördeid ka ohuolukorras.
 
 Lisa kaks otsustamise põhjust:
 
-1. **Ohuotsus:** kui otse ees on oht, otsusta kohe.
+1. **Ohuotsus:** kui otse ees on oht, otsusta enne strateegilist cooldown'i.
 2. **Strateegiline otsus:** isegi ohutu tee puhul vaata aeg-ajalt uuesti, et bot ei sõidaks lõputult sama mustrit.
+
+Ohuotsus ei tohi tähendada lõputut vasak-parem rabelemist. Kui oht pole veel kriitiliselt lähedal, peab bot austama `minTurnIntervalMs` väärtust. Ainult väga lähedal olev `panicDistance` võib selle piiri üle kirjutada.
 
 Kui otsus “ebaõnnestub”, ära tee tahtlikult alati enesetappu. Inimlik viga võib tähendada:
 
@@ -615,6 +620,12 @@ Kui otsus “ebaõnnestub”, ära tee tahtlikult alati enesetappu. Inimlik viga
 - reaktsiooni hilinemist;
 - korraks otse jätkamist;
 - suuremat juhuslikku mõju skoorile.
+
+Raskusastmed peavad mängus selgelt erinema:
+
+- `Easy` reageerib hiljem, pöörab aeglasemalt, vaatab vähem ette ja teeb rohkem turvalisi valikuvigu;
+- `Medium` on tasakaalustatud;
+- `Hard` märkab ohtu kaugemalt, pöörab kiiremini, vaatab rohkem ette ja teeb harva turvalisi valikuvigu.
 
 **Valmis, kui:** kolme profiiliga botid valivad samas olukorras sageli, kuid mitte alati, erineva tegevuse.
 
@@ -634,7 +645,8 @@ updateGamePhysics();
 - töötama ainult `PLAYING` olekus;
 - töötama ainult `isBot === true` ja `isAlive === true` mängijatel;
 - jätma inimese puutumata;
-- jätma otsuse vahele, kui `nextDecisionAt` pole saabunud ja otsest ohtu pole;
+- jätma strateegilise otsuse vahele, kui `nextDecisionAt` pole saabunud;
+- jätma ohuotsuse vahele, kui eelmisest pöördest pole piisavalt aega möödas ja oht pole veel paanikakaugusel;
 - kutsuma suuna muutmiseks `applyPlayerTurn()`;
 - mitte emiteerima `PLAYER_INPUT` Socket.IO sündmust.
 
