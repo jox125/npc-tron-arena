@@ -306,6 +306,97 @@ test('distanceToDanger ignores self and eliminated players', () => {
     );
 });
 
+test('distanceToDanger ignores trail danger while player is ghost', () => {
+    const player = createPlayer({
+        id: 'bot',
+        x: 100,
+        y: 100
+    });
+    player.isGhost = true;
+    const gameState = createGameState({
+        players: [player],
+        trails: [
+            createTrail({
+                id: 'ghosted-wall',
+                x1: 116,
+                y1: 96,
+                x2: 116,
+                y2: 104
+            })
+        ]
+    });
+
+    assert.equal(
+        distanceToDanger(player, DIRECTIONS.RIGHT, gameState, 40),
+        40
+    );
+});
+
+test('distanceToDanger still detects nearby players while player is ghost', () => {
+    const player = createPlayer({
+        id: 'bot',
+        x: 100,
+        y: 100
+    });
+    player.isGhost = true;
+    const opponent = createPlayer({
+        id: 'opponent',
+        x: 116,
+        y: 100
+    });
+    const gameState = createGameState({
+        players: [player, opponent],
+        trails: [
+            createTrail({
+                id: 'ghosted-wall',
+                x1: 116,
+                y1: 96,
+                x2: 116,
+                y2: 104
+            })
+        ]
+    });
+
+    assert.equal(
+        distanceToDanger(player, DIRECTIONS.RIGHT, gameState, 40),
+        8
+    );
+});
+
+test('distanceToDanger treats shield as one simulated trail break', () => {
+    const player = createPlayer({
+        id: 'bot',
+        x: 100,
+        y: 100
+    });
+    player.hasShield = true;
+    const gameState = createGameState({
+        players: [player],
+        trails: [
+            createTrail({
+                id: 'first-wall',
+                x1: 116,
+                y1: 96,
+                x2: 116,
+                y2: 104
+            }),
+            createTrail({
+                id: 'second-wall',
+                x1: 136,
+                y1: 96,
+                x2: 136,
+                y2: 104
+            })
+        ]
+    });
+
+    assert.equal(
+        distanceToDanger(player, DIRECTIONS.RIGHT, gameState, 60),
+        32
+    );
+    assert.equal(player.hasShield, true);
+});
+
 test('distanceToDanger detects trail danger across arena wrap', () => {
     const player = createPlayer({
         id: 'bot',

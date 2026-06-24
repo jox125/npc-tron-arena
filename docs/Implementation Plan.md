@@ -574,6 +574,8 @@ Alusta ray-cast laadse proovivõtuga, näiteks iga 8 px järel. See on lihtsam k
 - sein otse ees annab väikese ohutuskauguse;
 - tühi suund annab maksimaalse ohutuskauguse;
 - oma aktiivset rada ei käsitleta valesti kohese seinana;
+- `GHOST` režiimis ei loeta trail'e ohuks, kuid teised rattad jäävad ohuks;
+- `TRAIL_BREAKER` shield lubab ohutaju simulatsioonis ühest trail'ist läbi murda;
 - vastassuunda ei pakuta kandidaadiks;
 - areeni serva ületav ennustus jätkub vastasservast.
 

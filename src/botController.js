@@ -175,6 +175,8 @@ export function distanceToDanger(player, direction, gameState, maxDistance) {
         x: player.x,
         y: player.y
     };
+    let simulatedShieldAvailable = player.hasShield === true;
+    const simulatedBrokenTrailIds = new Set();
 
     let distance = 0;
     while (distance < maxDistance) {
@@ -185,9 +187,28 @@ export function distanceToDanger(player, direction, gameState, maxDistance) {
             direction,
             stepDistance
         );
+        const hitTrail = getHitTrailSegment(
+            currentPosition,
+            player,
+            gameState.trails,
+            simulatedBrokenTrailIds
+        );
 
-        if (pointHitsTrail(currentPosition, player, gameState.trails) ||
-            pointHitsOtherPlayer(currentPosition, player, gameState.players)) {
+        if (hitTrail) {
+            if (player.isGhost === true) {
+                continue;
+            }
+
+            if (simulatedShieldAvailable) {
+                simulatedShieldAvailable = false;
+                simulatedBrokenTrailIds.add(hitTrail.id);
+                continue;
+            }
+
+            return distance;
+        }
+
+        if (pointHitsOtherPlayer(currentPosition, player, gameState.players)) {
             return distance;
         }
     }
@@ -605,10 +626,18 @@ function getDirectionStabilityScore(player, direction, currentDirection) {
  * The player's currently growing trail segment is skipped, matching the
  * server's real collision behavior and preventing instant false self-danger.
  */
-function pointHitsTrail(point, player, trails) {
+function getHitTrailSegment(
+    point,
+    player,
+    trails,
+    ignoredTrailIds = new Set()
+) {
     for (let i = 0; i < (trails || []).length; i++) {
         const segment = {...trails[i]};
-        if (segment.id === player.currentTrailId) {
+        if (
+            segment.id === player.currentTrailId ||
+            ignoredTrailIds.has(segment.id)
+        ) {
             continue;
         }
         const minX = Math.min(segment.x1, segment.x2) -
@@ -621,11 +650,11 @@ function pointHitsTrail(point, player, trails) {
             TRAIL_COLLISION_BUFFER;
 
         if (pointInWrappedBox(point, minX, maxX, minY, maxY)) {
-            return true;
+            return segment;
         }
 
     }
-    return false;
+    return null;
 }
 
 /**
