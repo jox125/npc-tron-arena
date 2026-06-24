@@ -36,7 +36,7 @@ const DIFFICULTY_SETTINGS = Object.freeze({
         randomNoise: 80,
         safetyWeight: 2.2,
         switchThreshold: 70,
-        mistakeChance: 0.45
+        mistakeChance: 0.75
     }),
     [BOT_DIFFICULTIES.MEDIUM]: Object.freeze({
         lookAhead: 170,
@@ -47,7 +47,7 @@ const DIFFICULTY_SETTINGS = Object.freeze({
         randomNoise: 18,
         safetyWeight: 3.5,
         switchThreshold: 25,
-        mistakeChance: 0.08
+        mistakeChance: 0.2
     }),
     [BOT_DIFFICULTIES.HARD]: Object.freeze({
         lookAhead: 360,
@@ -58,7 +58,7 @@ const DIFFICULTY_SETTINGS = Object.freeze({
         randomNoise: 2,
         safetyWeight: 4.8,
         switchThreshold: 6,
-        mistakeChance: 0.005
+        mistakeChance: 0.05
     })
 });
 
