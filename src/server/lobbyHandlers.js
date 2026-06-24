@@ -86,7 +86,7 @@ export function registerLobbyHandlers({io, socket}) {
     });
 
     socket.on('UPDATE_MATCH_SETTINGS', ({winsRequired} = {}) => {
-        const player = gameState.players[socket.id];
+        const player = getHumanSocketPlayer(socket);
         if (!player?.isHost || gameState.gameStatus !== 'LOBBY') {
             socket.emit('MATCH_SETTINGS_ERROR', {
                 message: 'Only the room host can change lobby settings.'
@@ -111,7 +111,7 @@ export function registerLobbyHandlers({io, socket}) {
     });
 
     socket.on("UPDATE_GAME_MODE", ({gameMode} = {}) => {
-        const player = gameState.players[socket.id];
+        const player = getHumanSocketPlayer(socket);
 
         if (!player?.isHost || gameState.gameStatus !== 'LOBBY') {
             socket.emit('GAME_MODE_ERROR', {
@@ -151,7 +151,7 @@ export function registerLobbyHandlers({io, socket}) {
     });
 
     socket.on("UPDATE_BOT_SETTINGS", ({configs, opponentCount}) => {
-        const player = gameState.players[socket.id];
+        const player = getHumanSocketPlayer(socket);
 
         if (!player ||
             !player?.isHost ||
@@ -228,4 +228,12 @@ function syncLobbyBots(configs) {
 function hasHumanPlayers() {
     return Object.values(gameState.players)
         .some(player => player.isBot !== true);
+}
+
+function getHumanSocketPlayer(socket) {
+    const player = gameState.players[socket.id];
+
+    if (!player || player.isBot === true) return null;
+
+    return player;
 }

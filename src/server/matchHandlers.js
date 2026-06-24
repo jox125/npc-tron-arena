@@ -11,7 +11,7 @@ import {canStartMatch} from "./matchRules.js";
  */
 export function registerMatchHandlers({io, socket, session}) {
     socket.on('START_GAME', () => {
-        const player = gameState.players[socket.id];
+        const player = getHumanSocketPlayer(socket);
         const validatedStart = canStartMatch(gameState, player);
 
         if (!validatedStart.valid) {
@@ -32,7 +32,7 @@ export function registerMatchHandlers({io, socket, session}) {
     });
 
 socket.on('PAUSE_GAME', () => {
-    const player = gameState.players[socket.id];
+    const player = getHumanSocketPlayer(socket);
     if (!player || gameState.gameStatus !== 'PLAYING') return;
 
     session.pauseRoundTimer();
@@ -47,7 +47,7 @@ socket.on('PAUSE_GAME', () => {
 });
 
 socket.on('RESUME_GAME', () => {
-    const player = gameState.players[socket.id];
+    const player = getHumanSocketPlayer(socket);
     if (!player || gameState.gameStatus !== 'PAUSED') return;
 
     session.resumeRoundTimer();
@@ -62,7 +62,7 @@ socket.on('RESUME_GAME', () => {
 });
 
 socket.on('QUIT_MATCH', () => {
-    const player = gameState.players[socket.id];
+    const player = getHumanSocketPlayer(socket);
     if (!player || !['PLAYING', 'PAUSED'].includes(gameState.gameStatus)) {
         socket.emit('QUIT_MATCH_ERROR', {
             message: 'You can only quit an active match.'
@@ -82,7 +82,7 @@ socket.on('QUIT_MATCH', () => {
 });
 
 socket.on('START_NEXT_ROUND', () => {
-    const player = gameState.players[socket.id];
+    const player = getHumanSocketPlayer(socket);
     if (!player?.isHost) {
         socket.emit('ROUND_ACTION_ERROR', {
             message: 'Only the room host can start the next round.'
@@ -115,7 +115,7 @@ socket.on('START_NEXT_ROUND', () => {
 });
 
 socket.on('RETURN_TO_LOBBY', () => {
-    const player = gameState.players[socket.id];
+    const player = getHumanSocketPlayer(socket);
     if (!player?.isHost) {
         socket.emit('RETURN_TO_LOBBY_ERROR', {
             message: 'Only the room host can return the room to the lobby.'
@@ -135,4 +135,12 @@ socket.on('RETURN_TO_LOBBY', () => {
     io.emit('ROOM_STATE_UPDATE', Object.values(gameState.players));
     io.emit('GAME_STATE_UPDATE', gameState);
 });
+}
+
+function getHumanSocketPlayer(socket) {
+    const player = gameState.players[socket.id];
+
+    if (!player || player.isBot === true) return null;
+
+    return player;
 }

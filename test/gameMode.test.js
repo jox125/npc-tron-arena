@@ -51,6 +51,34 @@ test('non-host cannot change game mode', () => {
     assert.equal(socket.emitted('GAME_MODE_ERROR').length, 1);
 });
 
+test('bot id cannot change game mode even if marked as host', () => {
+    resetState();
+    gameState.players['bot-2'] = createBotPlayer(2);
+    gameState.players['bot-2'].isHost = true;
+    const { socket } = createLobbyHarness('bot-2');
+
+    socket.trigger('UPDATE_GAME_MODE', {
+        gameMode: GAME_MODES.SINGLE_PLAYER
+    });
+
+    assert.equal(gameState.gameMode, GAME_MODES.MULTIPLAYER);
+    assert.equal(socket.emitted('GAME_MODE_ERROR').length, 1);
+});
+
+test('bot id cannot change match settings even if marked as host', () => {
+    resetState();
+    gameState.players['bot-2'] = createBotPlayer(2);
+    gameState.players['bot-2'].isHost = true;
+    const { socket } = createLobbyHarness('bot-2');
+
+    socket.trigger('UPDATE_MATCH_SETTINGS', {
+        winsRequired: 5
+    });
+
+    assert.equal(gameState.winsRequired, 3);
+    assert.equal(socket.emitted('MATCH_SETTINGS_ERROR').length, 1);
+});
+
 test('game mode cannot change outside lobby', () => {
     resetState();
     gameState.gameStatus = 'PLAYING';
@@ -192,6 +220,22 @@ test('invalid bot settings are rejected', () => {
                 personality: BOT_PERSONALITIES.SURVIVOR
             }
         ]
+    });
+
+    assert.equal(gameState.botConfigs.length, 0);
+    assert.equal(socket.emitted('BOT_SETTINGS_ERROR').length, 1);
+});
+
+test('bot id cannot change bot settings even if marked as host', () => {
+    resetState();
+    gameState.gameMode = GAME_MODES.SINGLE_PLAYER;
+    gameState.players['bot-2'] = createBotPlayer(2);
+    gameState.players['bot-2'].isHost = true;
+    const { socket } = createLobbyHarness('bot-2');
+
+    socket.trigger('UPDATE_BOT_SETTINGS', {
+        opponentCount: 1,
+        configs: createConfigs(1)
     });
 
     assert.equal(gameState.botConfigs.length, 0);

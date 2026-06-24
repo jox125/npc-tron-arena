@@ -728,11 +728,13 @@ lõpetada enesetapuga või ESC menüü kaudu lahkudes.
 
 NPC-l pole socket'it, seega tavaliselt ei saa ta menüüsündmusi saata. Lisa siiski serverisse selged kontrollid:
 
+- `START_GAME`;
 - `PAUSE_GAME`;
 - `RESUME_GAME`;
 - `QUIT_MATCH`;
 - `START_NEXT_ROUND`;
 - `RETURN_TO_LOBBY`;
+- `UPDATE_MATCH_SETTINGS`;
 - `UPDATE_GAME_MODE`;
 - `UPDATE_BOT_SETTINGS`.
 
@@ -751,6 +753,7 @@ Hosti nõudvatel toimingutel kontrolli lisaks `player.isHost`.
 - boti id-ga ei saa mängu pausile panna;
 - bot ei saa matšist lahkuda;
 - bot ei saa järgmist vooru käivitada;
+- bot ei saa lobby match settings väärtusi muuta;
 - bot ei saa režiimi või seadeid muuta.
 
 **Valmis, kui:** review nõue “Virtual opponents cannot pause/restart/quit” on kaitstud nii arhitektuuri kui valideerimisega.
