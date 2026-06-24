@@ -9,6 +9,7 @@ export const DIRECTIONS = Object.freeze({
 const SCAN_STEP = 4;
 const TRAIL_COLLISION_BUFFER = 4;
 const PLAYER_DANGER_BUFFER = 10;
+const OPPONENT_SCAN_RADIUS = 60;
 
 export function getCurrentDirection(player) {
     if (
@@ -125,6 +126,35 @@ export function distanceToNearestPowerUp(player, direction, gameState, maxDistan
     return maxDistance;
 }
 
+export function distanceToNearestOpponent(
+    player,
+    direction,
+    gameState,
+    maxDistance
+) {
+    let currentPosition = {
+        x: player.x,
+        y: player.y
+    };
+
+    let distance = 0;
+    while (distance < maxDistance) {
+        const stepDistance = Math.min(SCAN_STEP, maxDistance - distance);
+        distance += stepDistance;
+        currentPosition = simulateStep(
+            currentPosition,
+            direction,
+            stepDistance
+        );
+
+        if (pointNearOpponent(currentPosition, player, gameState.players)) {
+            return distance;
+        }
+    }
+
+    return maxDistance;
+}
+
 function pointHitsTrail(point, player, trails) {
     for (let i = 0; i < (trails || []).length; i++) {
         const segment = {...trails[i]};
@@ -215,5 +245,32 @@ function pointHitsPowerUp(point, powerUps) {
             return true;
         }
     }
+    return false;
+}
+
+function pointNearOpponent(point, player, players) {
+    const otherPlayers = Object.values(players || {});
+
+    for (const otherPlayer of otherPlayers) {
+        if (player.id === otherPlayer.id || otherPlayer.isAlive === false) {
+            continue;
+        }
+
+        const distanceX = wrappedAxisDistance(
+            point.x,
+            otherPlayer.x,
+            ARENA_WIDTH
+        );
+        const distanceY = wrappedAxisDistance(
+            point.y,
+            otherPlayer.y,
+            ARENA_HEIGHT
+        );
+
+        if (Math.hypot(distanceX, distanceY) <= OPPONENT_SCAN_RADIUS) {
+            return true;
+        }
+    }
+
     return false;
 }

@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
     DIRECTIONS,
     distanceToDanger,
+    distanceToNearestOpponent,
     distanceToNearestPowerUp,
     getCandidateDirections,
     getCurrentDirection,
@@ -408,6 +409,90 @@ test('distanceToNearestPowerUp detects power-up across arena wrap', () => {
 
     assert.equal(
         distanceToNearestPowerUp(player, DIRECTIONS.RIGHT, gameState, 40),
+        4
+    );
+});
+
+test('distanceToNearestOpponent returns max distance when no opponent is found', () => {
+    const player = createPlayer({
+        id: 'bot',
+        x: 100,
+        y: 100
+    });
+    const gameState = createGameState({
+        players: [player],
+        trails: []
+    });
+
+    assert.equal(
+        distanceToNearestOpponent(player, DIRECTIONS.RIGHT, gameState, 40),
+        40
+    );
+});
+
+test('distanceToNearestOpponent detects opponent within scan radius', () => {
+    const player = createPlayer({
+        id: 'bot',
+        x: 100,
+        y: 100
+    });
+    const opponent = createPlayer({
+        id: 'opponent',
+        x: 164,
+        y: 100
+    });
+    const gameState = createGameState({
+        players: [player, opponent],
+        trails: []
+    });
+
+    assert.equal(
+        distanceToNearestOpponent(player, DIRECTIONS.RIGHT, gameState, 80),
+        4
+    );
+});
+
+test('distanceToNearestOpponent ignores self and eliminated players', () => {
+    const player = createPlayer({
+        id: 'bot',
+        x: 100,
+        y: 100
+    });
+    const eliminatedOpponent = createPlayer({
+        id: 'opponent',
+        x: 140,
+        y: 100,
+        isAlive: false
+    });
+    const gameState = createGameState({
+        players: [player, eliminatedOpponent],
+        trails: []
+    });
+
+    assert.equal(
+        distanceToNearestOpponent(player, DIRECTIONS.RIGHT, gameState, 80),
+        80
+    );
+});
+
+test('distanceToNearestOpponent detects opponent across arena wrap', () => {
+    const player = createPlayer({
+        id: 'bot',
+        x: 760,
+        y: 100
+    });
+    const opponent = createPlayer({
+        id: 'opponent',
+        x: 20,
+        y: 100
+    });
+    const gameState = createGameState({
+        players: [player, opponent],
+        trails: []
+    });
+
+    assert.equal(
+        distanceToNearestOpponent(player, DIRECTIONS.RIGHT, gameState, 80),
         4
     );
 });
