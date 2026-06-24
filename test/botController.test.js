@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
     DIRECTIONS,
     distanceToDanger,
+    distanceToNearestPowerUp,
     getCandidateDirections,
     getCurrentDirection,
     simulateStep
@@ -343,12 +344,81 @@ test('distanceToDanger detects nearby player across arena wrap', () => {
     );
 });
 
-function createGameState({players, trails}) {
+test('distanceToNearestPowerUp returns max distance when no power-up is found', () => {
+    const player = createPlayer({
+        id: 'bot',
+        x: 100,
+        y: 100
+    });
+    const gameState = createGameState({
+        players: [player],
+        trails: [],
+        powerUps: []
+    });
+
+    assert.equal(
+        distanceToNearestPowerUp(player, DIRECTIONS.RIGHT, gameState, 40),
+        40
+    );
+});
+
+test('distanceToNearestPowerUp detects collectible power-up radius', () => {
+    const player = createPlayer({
+        id: 'bot',
+        x: 100,
+        y: 100
+    });
+    const gameState = createGameState({
+        players: [player],
+        trails: [],
+        powerUps: [
+            createPowerUp({
+                id: 'powerup-1',
+                x: 124,
+                y: 100,
+                radius: 15
+            })
+        ]
+    });
+
+    assert.equal(
+        distanceToNearestPowerUp(player, DIRECTIONS.RIGHT, gameState, 40),
+        8
+    );
+});
+
+test('distanceToNearestPowerUp detects power-up across arena wrap', () => {
+    const player = createPlayer({
+        id: 'bot',
+        x: 790,
+        y: 100
+    });
+    const gameState = createGameState({
+        players: [player],
+        trails: [],
+        powerUps: [
+            createPowerUp({
+                id: 'powerup-1',
+                x: 5,
+                y: 100,
+                radius: 15
+            })
+        ]
+    });
+
+    assert.equal(
+        distanceToNearestPowerUp(player, DIRECTIONS.RIGHT, gameState, 40),
+        4
+    );
+});
+
+function createGameState({players, trails, powerUps = []}) {
     return {
         players: Object.fromEntries(
             players.map(player => [player.id, player])
         ),
-        trails
+        trails,
+        powerUps
     };
 }
 
@@ -375,5 +445,14 @@ function createTrail({id, x1, y1, x2, y2}) {
         y1,
         x2,
         y2
+    };
+}
+
+function createPowerUp({id, x, y, radius}) {
+    return {
+        id,
+        x,
+        y,
+        radius
     };
 }

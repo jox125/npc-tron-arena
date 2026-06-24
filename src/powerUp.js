@@ -1,4 +1,4 @@
-import { startNewTrailSegment, ARENA_WIDTH, ARENA_HEIGHT } from './gameEngine.js';
+import { ARENA_WIDTH, ARENA_HEIGHT } from './gameEngine.js';
 import { emitPowerUpAudio } from './gameEvents.js';
 
 const POWER_UP_TYPES = ['GHOST', 'FREEZE', 'TRAIL_ERASER', 'TRAIL_BREAKER'];

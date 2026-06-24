@@ -6,7 +6,7 @@ export const DIRECTIONS = Object.freeze({
     LEFT: 'LEFT',
     RIGHT: 'RIGHT'
 });
-const DANGER_SCAN_STEP = 4;
+const SCAN_STEP = 4;
 const TRAIL_COLLISION_BUFFER = 4;
 const PLAYER_DANGER_BUFFER = 10;
 
@@ -87,7 +87,7 @@ export function distanceToDanger(player, direction, gameState, maxDistance) {
 
     let distance = 0;
     while (distance < maxDistance) {
-        const stepDistance = Math.min(DANGER_SCAN_STEP, maxDistance - distance);
+        const stepDistance = Math.min(SCAN_STEP, maxDistance - distance);
         distance += stepDistance;
         currentPosition = simulateStep(
             currentPosition,
@@ -97,6 +97,28 @@ export function distanceToDanger(player, direction, gameState, maxDistance) {
 
         if (pointHitsTrail(currentPosition, player, gameState.trails) ||
             pointHitsOtherPlayer(currentPosition, player, gameState.players)) {
+            return distance;
+        }
+    }
+    return maxDistance;
+}
+
+export function distanceToNearestPowerUp(player, direction, gameState, maxDistance) {
+    let currentPosition = {
+        x: player.x,
+        y: player.y
+    };
+
+    let distance = 0;
+    while (distance < maxDistance) {
+        const stepDistance = Math.min(SCAN_STEP, maxDistance - distance);
+        distance += stepDistance;
+        currentPosition = simulateStep(
+            currentPosition,
+            direction,
+            stepDistance
+        );
+        if (pointHitsPowerUp(currentPosition, gameState.powerUps)) {
             return distance;
         }
     }
@@ -174,4 +196,24 @@ function pointInWrappedBox(point, minX, maxX, minY, maxY) {
 function wrappedAxisDistance(first, second, arenaSize) {
     const directDistance = Math.abs(first - second);
     return Math.min(directDistance, arenaSize - directDistance);
+}
+
+function pointHitsPowerUp(point, powerUps) {
+    for (const powerUp of powerUps || []) {
+        const distanceX = wrappedAxisDistance(
+            point.x,
+            powerUp.x,
+            ARENA_WIDTH
+        );
+        const distanceY = wrappedAxisDistance(
+            point.y,
+            powerUp.y,
+            ARENA_HEIGHT
+        );
+
+        if (Math.hypot(distanceX, distanceY) < powerUp.radius + 5) {
+            return true;
+        }
+    }
+    return false;
 }
