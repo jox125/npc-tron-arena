@@ -1,4 +1,8 @@
 import {ARENA_HEIGHT, ARENA_WIDTH} from "./gameEngine.js";
+import {
+    BOT_DIFFICULTIES,
+    BOT_PERSONALITIES
+} from "./botConfig.js";
 
 export const DIRECTIONS = Object.freeze({
     UP: 'UP',
@@ -10,6 +14,51 @@ const SCAN_STEP = 4;
 const TRAIL_COLLISION_BUFFER = 4;
 const PLAYER_DANGER_BUFFER = 10;
 const OPPONENT_SCAN_RADIUS = 60;
+const DANGER_REACTION_DISTANCE = 48;
+const STRATEGIC_DECISION_MULTIPLIER = 4;
+
+// Difficulty controls how far ahead a bot sees, how often it reconsiders,
+// and how much imperfect human-like noise is allowed into the score.
+const DIFFICULTY_SETTINGS = Object.freeze({
+    [BOT_DIFFICULTIES.EASY]: Object.freeze({
+        lookAhead: 120,
+        decisionCooldownMs: 550,
+        randomNoise: 30,
+        safetyWeight: 3
+    }),
+    [BOT_DIFFICULTIES.MEDIUM]: Object.freeze({
+        lookAhead: 220,
+        decisionCooldownMs: 350,
+        randomNoise: 14,
+        safetyWeight: 3.5
+    }),
+    [BOT_DIFFICULTIES.HARD]: Object.freeze({
+        lookAhead: 360,
+        decisionCooldownMs: 220,
+        randomNoise: 5,
+        safetyWeight: 4
+    })
+});
+
+// Personality weights bias equally safe choices without overriding safety.
+// SURVIVOR values space, HUNTER values opponents, COLLECTOR values power-ups.
+const PERSONALITY_WEIGHTS = Object.freeze({
+    [BOT_PERSONALITIES.SURVIVOR]: Object.freeze({
+        safety: 1.2,
+        opponent: 0.2,
+        powerUp: 0.2
+    }),
+    [BOT_PERSONALITIES.HUNTER]: Object.freeze({
+        safety: 0.55,
+        opponent: 1.35,
+        powerUp: 0.15
+    }),
+    [BOT_PERSONALITIES.COLLECTOR]: Object.freeze({
+        safety: 0.55,
+        opponent: 0.25,
+        powerUp: 1.4
+    })
+});
 
 export function getCurrentDirection(player) {
     if (
@@ -153,6 +202,216 @@ export function distanceToNearestOpponent(
     }
 
     return maxDistance;
+}
+
+export function scoreDirection(player, direction, gameState, options = {}) {
+    const settings = getDifficultySettings(player.difficulty);
+    const personalityWeights = getPersonalityWeights(player.personality);
+    const lookAhead = options.lookAhead ?? settings.lookAhead;
+    const random = options.random ?? Math.random;
+
+    const safetyDistance = distanceToDanger(
+        player,
+        direction,
+        gameState,
+        lookAhead
+    );
+    const powerUpDistance = distanceToNearestPowerUp(
+        player,
+        direction,
+        gameState,
+        lookAhead
+    );
+    const opponentDistance = distanceToNearestOpponent(
+        player,
+        direction,
+        gameState,
+        lookAhead
+    );
+
+    // Safety is intentionally the largest part of the score for every bot.
+    // Personality can bend a choice, but it should not make a bot happily
+    // drive into an obvious wall just because a power-up or opponent is close.
+    const safetyScore = safetyDistance * settings.safetyWeight;
+    const personalityScore = getPersonalityScore({
+        lookAhead,
+        opponentDistance,
+        personalityWeights,
+        powerUpDistance,
+        safetyDistance
+    });
+    const powerUpScore = getClosenessScore(powerUpDistance, lookAhead) *
+        personalityWeights.powerUp;
+    const opponentScore = getClosenessScore(opponentDistance, lookAhead) *
+        personalityWeights.opponent;
+    const directionDiversityScore = getDirectionDiversityScore(
+        player,
+        direction
+    );
+    const randomNoise = (random() - 0.5) * settings.randomNoise;
+    const score = safetyScore +
+        personalityScore +
+        powerUpScore +
+        opponentScore +
+        directionDiversityScore +
+        randomNoise;
+
+    return {
+        direction,
+        score,
+        safetyDistance,
+        powerUpDistance,
+        opponentDistance,
+        breakdown: {
+            safetyScore,
+            personalityScore,
+            powerUpScore,
+            opponentScore,
+            directionDiversityScore,
+            randomNoise
+        }
+    };
+}
+
+export function shouldBotDecide(
+    player,
+    gameState,
+    now = Date.now(),
+    options = {}
+) {
+    const currentDirection = getCurrentDirection(player);
+    if (!currentDirection) {
+        return {
+            shouldDecide: false,
+            reason: 'NO_DIRECTION'
+        };
+    }
+
+    const settings = getDifficultySettings(player.difficulty);
+    const lookAhead = options.lookAhead ?? settings.lookAhead;
+    const dangerDistance = distanceToDanger(
+        player,
+        currentDirection,
+        gameState,
+        lookAhead
+    );
+
+    if (dangerDistance <= DANGER_REACTION_DISTANCE) {
+        return {
+            shouldDecide: true,
+            reason: 'DANGER',
+            dangerDistance
+        };
+    }
+
+    const runtime = player.botRuntime ?? {};
+    if (
+        runtime.forceDecisionAt !== undefined &&
+        now >= runtime.forceDecisionAt
+    ) {
+        return {
+            shouldDecide: true,
+            reason: 'STRATEGY',
+            dangerDistance
+        };
+    }
+
+    if (runtime.nextDecisionAt === undefined || now >= runtime.nextDecisionAt) {
+        return {
+            shouldDecide: true,
+            reason: 'STRATEGY',
+            dangerDistance
+        };
+    }
+
+    return {
+        shouldDecide: false,
+        reason: 'WAIT',
+        dangerDistance
+    };
+}
+
+export function chooseBotDirection(
+    player,
+    gameState,
+    now = Date.now(),
+    options = {}
+) {
+    const decisionReadiness = shouldBotDecide(
+        player,
+        gameState,
+        now,
+        options
+    );
+    if (!decisionReadiness.shouldDecide) {
+        return null;
+    }
+
+    const candidates = getCandidateDirections(player);
+    if (candidates.length === 0) {
+        return null;
+    }
+
+    const scoredDirections = candidates
+        .map(direction => scoreDirection(player, direction, gameState, options))
+        .sort((first, second) => second.score - first.score);
+    const chosen = scoredDirections[0];
+
+    // Etapp 11 kasutab seda runtime infot, et sama bot ei teeks uut
+    // strateegilist otsust igal 30 Hz serveri tick'il.
+    player.botRuntime = {
+        ...player.botRuntime,
+        nextDecisionAt: now + getDifficultySettings(player.difficulty)
+            .decisionCooldownMs,
+        forceDecisionAt: now + getDifficultySettings(player.difficulty)
+            .decisionCooldownMs * STRATEGIC_DECISION_MULTIPLIER,
+        lastDirection: chosen.direction,
+        lastTurnAt: chosen.direction === getCurrentDirection(player)
+            ? player.botRuntime?.lastTurnAt ?? 0
+            : now
+    };
+
+    return {
+        direction: chosen.direction,
+        reason: decisionReadiness.reason,
+        scores: scoredDirections
+    };
+}
+
+function getDifficultySettings(difficulty) {
+    return DIFFICULTY_SETTINGS[difficulty] ??
+        DIFFICULTY_SETTINGS[BOT_DIFFICULTIES.MEDIUM];
+}
+
+function getPersonalityWeights(personality) {
+    return PERSONALITY_WEIGHTS[personality] ??
+        PERSONALITY_WEIGHTS[BOT_PERSONALITIES.SURVIVOR];
+}
+
+function getPersonalityScore({
+    lookAhead,
+    opponentDistance,
+    personalityWeights,
+    powerUpDistance,
+    safetyDistance
+}) {
+    const safetyBonus = safetyDistance * personalityWeights.safety;
+    const opponentBonus = getClosenessScore(opponentDistance, lookAhead) *
+        personalityWeights.opponent;
+    const powerUpBonus = getClosenessScore(powerUpDistance, lookAhead) *
+        personalityWeights.powerUp;
+
+    return safetyBonus + opponentBonus + powerUpBonus;
+}
+
+function getClosenessScore(distance, maxDistance) {
+    if (distance >= maxDistance) return 0;
+    return maxDistance - distance;
+}
+
+function getDirectionDiversityScore(player, direction) {
+    if (!player.botRuntime?.lastDirection) return 0;
+    return player.botRuntime.lastDirection === direction ? -18 : 8;
 }
 
 function pointHitsTrail(point, player, trails) {

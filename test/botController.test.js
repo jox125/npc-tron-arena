@@ -3,13 +3,20 @@ import assert from 'node:assert/strict';
 
 import {
     DIRECTIONS,
+    chooseBotDirection,
     distanceToDanger,
     distanceToNearestOpponent,
     distanceToNearestPowerUp,
     getCandidateDirections,
     getCurrentDirection,
+    scoreDirection,
+    shouldBotDecide,
     simulateStep
 } from "../src/botController.js";
+import {
+    BOT_DIFFICULTIES,
+    BOT_PERSONALITIES
+} from "../src/botConfig.js";
 
 test('invalid player input returns null', () => {
     const invalidInputs = [
@@ -497,6 +504,211 @@ test('distanceToNearestOpponent detects opponent across arena wrap', () => {
     );
 });
 
+test('scoreDirection keeps safety more important than nearby rewards', () => {
+    const player = createBotPlayer({
+        id: 'bot',
+        x: 100,
+        y: 100,
+        dx: 4,
+        dy: 0,
+        personality: BOT_PERSONALITIES.COLLECTOR
+    });
+    const gameState = createGameState({
+        players: [player],
+        trails: [
+            createTrail({
+                id: 'wall',
+                x1: 116,
+                y1: 96,
+                x2: 116,
+                y2: 104
+            })
+        ],
+        powerUps: [
+            createPowerUp({
+                id: 'bait',
+                x: 108,
+                y: 100,
+                radius: 15
+            })
+        ]
+    });
+
+    const unsafeScore = scoreDirection(
+        player,
+        DIRECTIONS.RIGHT,
+        gameState,
+        deterministicOptions()
+    );
+    const safeScore = scoreDirection(
+        player,
+        DIRECTIONS.DOWN,
+        gameState,
+        deterministicOptions()
+    );
+
+    assert.ok(safeScore.score > unsafeScore.score);
+});
+
+test('hunter prefers an otherwise safe direction toward an opponent', () => {
+    const player = createBotPlayer({
+        id: 'bot',
+        x: 100,
+        y: 100,
+        dx: 4,
+        dy: 0,
+        personality: BOT_PERSONALITIES.HUNTER
+    });
+    const opponent = createPlayer({
+        id: 'opponent',
+        x: 100,
+        y: 40
+    });
+    const gameState = createGameState({
+        players: [player, opponent],
+        trails: []
+    });
+
+    const decision = chooseBotDirection(
+        player,
+        gameState,
+        1000,
+        deterministicOptions()
+    );
+
+    assert.equal(decision.direction, DIRECTIONS.UP);
+});
+
+test('collector prefers an otherwise safe direction toward a power-up', () => {
+    const player = createBotPlayer({
+        id: 'bot',
+        x: 100,
+        y: 100,
+        dx: 4,
+        dy: 0,
+        personality: BOT_PERSONALITIES.COLLECTOR
+    });
+    const gameState = createGameState({
+        players: [player],
+        trails: [],
+        powerUps: [
+            createPowerUp({
+                id: 'powerup',
+                x: 100,
+                y: 124,
+                radius: 15
+            })
+        ]
+    });
+
+    const decision = chooseBotDirection(
+        player,
+        gameState,
+        1000,
+        deterministicOptions()
+    );
+
+    assert.equal(decision.direction, DIRECTIONS.DOWN);
+});
+
+test('bot decision waits for nextDecisionAt when no immediate danger exists', () => {
+    const player = createBotPlayer({
+        id: 'bot',
+        x: 100,
+        y: 100,
+        dx: 4,
+        dy: 0,
+        botRuntime: {
+            nextDecisionAt: 2000
+        }
+    });
+    const gameState = createGameState({
+        players: [player],
+        trails: []
+    });
+
+    assert.deepEqual(
+        shouldBotDecide(player, gameState, 1000, deterministicOptions()),
+        {
+            shouldDecide: false,
+            reason: 'WAIT',
+            dangerDistance: 120
+        }
+    );
+    assert.equal(
+        chooseBotDirection(player, gameState, 1000, deterministicOptions()),
+        null
+    );
+});
+
+test('bot decision ignores nextDecisionAt when danger is close', () => {
+    const player = createBotPlayer({
+        id: 'bot',
+        x: 100,
+        y: 100,
+        dx: 4,
+        dy: 0,
+        botRuntime: {
+            nextDecisionAt: 2000
+        }
+    });
+    const gameState = createGameState({
+        players: [player],
+        trails: [
+            createTrail({
+                id: 'wall',
+                x1: 116,
+                y1: 96,
+                x2: 116,
+                y2: 104
+            })
+        ]
+    });
+
+    const readiness = shouldBotDecide(
+        player,
+        gameState,
+        1000,
+        deterministicOptions()
+    );
+    const decision = chooseBotDirection(
+        player,
+        gameState,
+        1000,
+        deterministicOptions()
+    );
+
+    assert.equal(readiness.shouldDecide, true);
+    assert.equal(readiness.reason, 'DANGER');
+    assert.notEqual(decision.direction, DIRECTIONS.RIGHT);
+});
+
+test('chooseBotDirection updates botRuntime scheduling fields', () => {
+    const player = createBotPlayer({
+        id: 'bot',
+        x: 100,
+        y: 100,
+        dx: 4,
+        dy: 0
+    });
+    const gameState = createGameState({
+        players: [player],
+        trails: []
+    });
+
+    const decision = chooseBotDirection(
+        player,
+        gameState,
+        1000,
+        deterministicOptions()
+    );
+
+    assert.equal(decision.reason, 'STRATEGY');
+    assert.equal(player.botRuntime.nextDecisionAt, 1550);
+    assert.equal(player.botRuntime.forceDecisionAt, 3200);
+    assert.equal(player.botRuntime.lastDirection, decision.direction);
+});
+
 function createGameState({players, trails, powerUps = []}) {
     return {
         players: Object.fromEntries(
@@ -523,6 +735,31 @@ function createPlayer({
     };
 }
 
+function createBotPlayer({
+    id,
+    x,
+    y,
+    dx,
+    dy,
+    botRuntime,
+    personality = BOT_PERSONALITIES.SURVIVOR,
+    difficulty = BOT_DIFFICULTIES.EASY
+}) {
+    return {
+        ...createPlayer({
+            id,
+            x,
+            y
+        }),
+        dx,
+        dy,
+        botRuntime,
+        difficulty,
+        isBot: true,
+        personality
+    };
+}
+
 function createTrail({id, x1, y1, x2, y2}) {
     return {
         id,
@@ -539,5 +776,12 @@ function createPowerUp({id, x, y, radius}) {
         x,
         y,
         radius
+    };
+}
+
+function deterministicOptions() {
+    return {
+        lookAhead: 120,
+        random: () => 0.5
     };
 }
