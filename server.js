@@ -4,6 +4,7 @@ import { Server } from 'socket.io';
 import path from 'path';
 
 import { gameState, updateGamePhysics } from './src/gameEngine.js';
+import { updateBots } from './src/botController.js';
 import { gameEvents } from './src/gameEvents.js';
 import { createGameSession } from './src/server/gameSession.js';
 import { registerSocketHandlers } from './src/server/socketHandlers.js';
@@ -35,6 +36,11 @@ const TICK_RATE = 30;
 setInterval(() => {
     if (gameState.gameStatus !== "PLAYING") return;
     session.updateRoundElapsedTime();
+    /**
+     * Bots decide before physics advances so their selected turn is applied
+     * through the same authoritative movement update as human input.
+     */
+    updateBots(gameState, Date.now());
     updateGamePhysics();
     session.resolveRoundEnd();
     io.emit('GAME_STATE_UPDATE', gameState);

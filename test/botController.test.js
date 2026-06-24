@@ -11,7 +11,8 @@ import {
     getCurrentDirection,
     scoreDirection,
     shouldBotDecide,
-    simulateStep
+    simulateStep,
+    updateBots
 } from "../src/botController.js";
 import {
     BOT_DIFFICULTIES,
@@ -709,8 +710,163 @@ test('chooseBotDirection updates botRuntime scheduling fields', () => {
     assert.equal(player.botRuntime.lastDirection, decision.direction);
 });
 
-function createGameState({players, trails, powerUps = []}) {
+test('updateBots skips all decisions outside active play', () => {
+    const bot = createBotPlayer({
+        id: 'bot',
+        x: 100,
+        y: 100,
+        dx: 4,
+        dy: 0
+    });
+    const gameState = createGameState({
+        players: [bot],
+        trails: [],
+        gameStatus: 'LOBBY'
+    });
+    const turnCalls = [];
+
+    const decisions = updateBots(gameState, 1000, {
+        decisionOptions: deterministicOptions(),
+        turnPlayer: (player, direction) => {
+            turnCalls.push({player, direction});
+            return true;
+        }
+    });
+
+    assert.deepEqual(decisions, []);
+    assert.deepEqual(turnCalls, []);
+});
+
+test('updateBots only processes alive bot players', () => {
+    const human = createPlayer({
+        id: 'human',
+        x: 100,
+        y: 100
+    });
+    human.dx = 4;
+    human.dy = 0;
+    const deadBot = createBotPlayer({
+        id: 'dead-bot',
+        x: 100,
+        y: 140,
+        dx: 4,
+        dy: 0,
+        isAlive: false
+    });
+    const aliveBot = createBotPlayer({
+        id: 'alive-bot',
+        x: 100,
+        y: 180,
+        dx: 4,
+        dy: 0
+    });
+    const gameState = createGameState({
+        players: [human, deadBot, aliveBot],
+        trails: [],
+        gameStatus: 'PLAYING'
+    });
+    const turnCalls = [];
+
+    const decisions = updateBots(gameState, 1000, {
+        decisionOptions: deterministicOptions(),
+        turnPlayer: (player, direction) => {
+            turnCalls.push({playerId: player.id, direction});
+            return true;
+        }
+    });
+
+    assert.equal(decisions.length, 1);
+    assert.deepEqual(turnCalls, [
+        {
+            playerId: 'alive-bot',
+            direction: decisions[0].direction
+        }
+    ]);
+});
+
+test('updateBots waits when nextDecisionAt has not arrived', () => {
+    const bot = createBotPlayer({
+        id: 'bot',
+        x: 100,
+        y: 100,
+        dx: 4,
+        dy: 0,
+        botRuntime: {
+            nextDecisionAt: 2000
+        }
+    });
+    const gameState = createGameState({
+        players: [bot],
+        trails: [],
+        gameStatus: 'PLAYING'
+    });
+    const turnCalls = [];
+
+    const decisions = updateBots(gameState, 1000, {
+        decisionOptions: deterministicOptions(),
+        turnPlayer: (player, direction) => {
+            turnCalls.push({player, direction});
+            return true;
+        }
+    });
+
+    assert.deepEqual(decisions, []);
+    assert.deepEqual(turnCalls, []);
+});
+
+test('updateBots reacts to immediate danger even before nextDecisionAt', () => {
+    const bot = createBotPlayer({
+        id: 'bot',
+        x: 100,
+        y: 100,
+        dx: 4,
+        dy: 0,
+        botRuntime: {
+            nextDecisionAt: 2000
+        }
+    });
+    const gameState = createGameState({
+        players: [bot],
+        trails: [
+            createTrail({
+                id: 'wall',
+                x1: 116,
+                y1: 96,
+                x2: 116,
+                y2: 104
+            })
+        ],
+        gameStatus: 'PLAYING'
+    });
+    const turnCalls = [];
+
+    const decisions = updateBots(gameState, 1000, {
+        decisionOptions: deterministicOptions(),
+        turnPlayer: (player, direction) => {
+            turnCalls.push({playerId: player.id, direction});
+            return true;
+        }
+    });
+
+    assert.equal(decisions.length, 1);
+    assert.equal(decisions[0].reason, 'DANGER');
+    assert.notEqual(decisions[0].direction, DIRECTIONS.RIGHT);
+    assert.deepEqual(turnCalls, [
+        {
+            playerId: 'bot',
+            direction: decisions[0].direction
+        }
+    ]);
+});
+
+function createGameState({
+    players,
+    trails,
+    powerUps = [],
+    gameStatus = 'PLAYING'
+}) {
     return {
+        gameStatus,
         players: Object.fromEntries(
             players.map(player => [player.id, player])
         ),
@@ -742,6 +898,7 @@ function createBotPlayer({
     dx,
     dy,
     botRuntime,
+    isAlive = true,
     personality = BOT_PERSONALITIES.SURVIVOR,
     difficulty = BOT_DIFFICULTIES.EASY
 }) {
@@ -755,6 +912,7 @@ function createBotPlayer({
         dy,
         botRuntime,
         difficulty,
+        isAlive,
         isBot: true,
         personality
     };

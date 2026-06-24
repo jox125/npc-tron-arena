@@ -1,4 +1,8 @@
-import {ARENA_HEIGHT, ARENA_WIDTH} from "./gameEngine.js";
+import {
+    ARENA_HEIGHT,
+    ARENA_WIDTH,
+    applyPlayerTurn
+} from "./gameEngine.js";
 import {
     BOT_DIFFICULTIES,
     BOT_PERSONALITIES
@@ -399,8 +403,10 @@ export function chooseBotDirection(
         .sort((first, second) => second.score - first.score);
     const chosen = scoredDirections[0];
 
-    // To prevent bot decide every 30hz server tick, but rather difficulty
-    // based period.
+    /**
+     * Store timing metadata so Etapp 11 can run bots every server tick while
+     * still allowing each bot to make strategic decisions at its own pace.
+     */
     player.botRuntime = {
         ...player.botRuntime,
         nextDecisionAt: now + getDifficultySettings(player.difficulty)
@@ -418,6 +424,45 @@ export function chooseBotDirection(
         reason: decisionReadiness.reason,
         scores: scoredDirections
     };
+}
+
+/**
+ * Runs one server-side decision pass for all active bots.
+ *
+ * The function does not emit socket events. It applies turns directly through
+ * the same movement rule used by human PLAYER_INPUT, so bots cannot reverse or
+ * bypass the authoritative trail creation logic.
+ */
+export function updateBots(gameState, now = Date.now(), options = {}) {
+    if (gameState.gameStatus !== 'PLAYING') {
+        return [];
+    }
+
+    const turnPlayer = options.turnPlayer ?? applyPlayerTurn;
+    const decisionOptions = options.decisionOptions ?? options;
+    const appliedDecisions = [];
+
+    Object.values(gameState.players || {})
+        .filter(player => player.isBot === true && player.isAlive === true)
+        .forEach(player => {
+            const decision = chooseBotDirection(
+                player,
+                gameState,
+                now,
+                decisionOptions
+            );
+            if (!decision) return;
+
+            const turned = turnPlayer(player, decision.direction);
+            appliedDecisions.push({
+                playerId: player.id,
+                direction: decision.direction,
+                reason: decision.reason,
+                turned
+            });
+        });
+
+    return appliedDecisions;
 }
 
 function getDifficultySettings(difficulty) {
