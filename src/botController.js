@@ -30,7 +30,7 @@ const DIFFICULTY_SETTINGS = Object.freeze({
     [BOT_DIFFICULTIES.EASY]: Object.freeze({
         lookAhead: 90,
         decisionCooldownMs: 700,
-        minTurnIntervalMs: 320,
+        minTurnIntervalMs: 520,
         dangerReactionDistance: 28,
         panicDistance: 8,
         randomNoise: 45,
@@ -41,7 +41,7 @@ const DIFFICULTY_SETTINGS = Object.freeze({
     [BOT_DIFFICULTIES.MEDIUM]: Object.freeze({
         lookAhead: 170,
         decisionCooldownMs: 420,
-        minTurnIntervalMs: 220,
+        minTurnIntervalMs: 360,
         dangerReactionDistance: 44,
         panicDistance: 8,
         randomNoise: 18,
@@ -52,7 +52,7 @@ const DIFFICULTY_SETTINGS = Object.freeze({
     [BOT_DIFFICULTIES.HARD]: Object.freeze({
         lookAhead: 280,
         decisionCooldownMs: 240,
-        minTurnIntervalMs: 140,
+        minTurnIntervalMs: 240,
         dangerReactionDistance: 64,
         panicDistance: 8,
         randomNoise: 6,

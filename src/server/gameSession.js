@@ -1,12 +1,19 @@
 import {
+    ARENA_HEIGHT,
+    ARENA_WIDTH,
     eliminatePlayer,
     finishRound,
     gameState,
     resetGameToLobby,
     startNewTrailSegment
 } from '../gameEngine.js';
+import {
+    distanceToDanger,
+    getCurrentDirection
+} from '../botController.js';
 import { spawnRandomPowerUp } from '../powerUp.js';
 import { ensureHost, getPlayerIdentity } from './playerRegistry.js';
+import { GAME_MODES } from './gameModes.js';
 
 const COUNTDOWN_STEP_MS = 750;
 const POWER_UP_SPAWN_INTERVAL_MS = 6000;
@@ -36,6 +43,14 @@ export function createGameSession(io) {
             .forEach(player => gameState.eliminationOrder.push(player.id));
 
         const alivePlayers = players.filter(player => player.isAlive);
+        if (shouldEndSinglePlayerAfterHumanDeath(players)) {
+            updateRoundElapsedTime();
+            return finishRound(
+                selectSinglePlayerBotWinnerId(players),
+                gameState.eliminationOrder
+            );
+        }
+
         if (alivePlayers.length > 1) return false;
 
         updateRoundElapsedTime();
@@ -185,6 +200,48 @@ export function createGameSession(io) {
         startRoundCountdown,
         updateRoundElapsedTime
     };
+}
+
+function shouldEndSinglePlayerAfterHumanDeath(players) {
+    if (gameState.gameMode !== GAME_MODES.SINGLE_PLAYER) return false;
+
+    return !players.some(player =>
+        player.isBot !== true &&
+        player.isAlive === true
+    );
+}
+
+function selectSinglePlayerBotWinnerId(players) {
+    const aliveBots = players
+        .filter(player => player.isBot === true && player.isAlive === true);
+
+    if (aliveBots.length === 0) return null;
+
+    return aliveBots
+        .map(bot => ({
+            id: bot.id,
+            playerNumber: bot.playerNumber,
+            survivalScore: getBotSurvivalScore(bot)
+        }))
+        .sort((first, second) => {
+            if (second.survivalScore !== first.survivalScore) {
+                return second.survivalScore - first.survivalScore;
+            }
+
+            return first.playerNumber - second.playerNumber;
+        })[0].id;
+}
+
+function getBotSurvivalScore(bot) {
+    const currentDirection = getCurrentDirection(bot);
+    if (!currentDirection) return 0;
+
+    return distanceToDanger(
+        bot,
+        currentDirection,
+        gameState,
+        Math.max(ARENA_WIDTH, ARENA_HEIGHT)
+    );
 }
 
 function setPlayerStartPosition(player) {

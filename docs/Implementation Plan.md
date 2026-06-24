@@ -678,45 +678,49 @@ Kontrolli teadlikult, et AI ei kasutaks ühtegi erandit nagu “otsi ainult inim
 5. Power-up'i sihtimine peab arvestama, et teine NPC võib selle varem kätte saada.
 6. Vooru rankings ja score peavad sisaldama NPC-sid.
 
-**Käsitest:** käivita mäng kolme NPC-ga ja lase inimesel võimalikult kiiresti surra. Jälgi, et NPC-d jätkavad mängu ning võitja selgub nende omavahelises võistluses.
+**Käsitest:** käivita mäng kolme NPC-ga ja jälgi, et NPC-d reageerivad nii inimese kui ka üksteise radadele, power-up'idele ja kokkupõrgetele enne inimese elimineerimist.
 
-**Valmis, kui:** inimese elimineerimine ei lõpeta vooru enne, kui alles on kõige rohkem üks elus osaleja.
+**Valmis, kui:** NPC-d võistlevad mängu ajal kõigi elus osalejate vastu; inimese elimineerimise järel lõpeb single-player voor Etapp 13 reeglite järgi.
 
 ---
 
-### Etapp 13: väldi lõputut mängu
+### Etapp 13: lõpeta single-player voor inimese surma korral
 
-Kasuta korraga käitumuslikku ja tehnilist kaitset.
+Single-player mängu vaatamiskogemus on tähtsam kui see, et botid mängiksid
+omavahel vooru lõpuni. Kui ainus inimmängija sureb, lõpeta voor kohe ja vali
+võitja deterministliku survival-reegliga.
 
-#### Käitumuslik kaitse
+#### Vooru lõpetamise reegel
 
-- `forceDecisionAt` sunnib aeg-ajalt uut strateegilist hinnangut;
-- bot ei eelista lõputult sama pöördemustrit;
-- iseloomud annavad erinevad sihid;
-- juhuslik mõju muudab korduvad olukorrad veidi erinevaks;
-- vooru vananedes võib botide riskivalmidus aeglaselt suureneda.
+- reegel rakendub ainult `SINGLE_PLAYER` režiimis;
+- kui ühtegi elus inimmängijat pole, lõpeb voor kohe;
+- kui mõni bot on veel elus, saab võitjaks parima survival-score'iga bot;
+- kui elus botte pole, lõpeb voor võitjata;
+- multiplayer vooru lõpp jääb muutmata.
 
-#### Tehniline kaitse
+#### Survival-score
 
-Lisa ainult single-player režiimile maksimaalne vooruaeg, näiteks 180 sekundit.
+Alusta lihtsast deterministlikust hinnangust:
 
-Kui piir saab täis:
+1. leia iga elus boti praegune liikumissuund;
+2. mõõda `distanceToDanger(...)` abil, kui palju ohutut ruumi tal selles suunas on;
+3. suurim kaugus võidab;
+4. viigi korral võidab väiksema `playerNumber` väärtusega bot.
 
-1. lõpeta voor deterministliku reegliga;
-2. eelista suurima “survival score'iga” elus mängijat;
-3. arvuta score näiteks vaba ruumi, lähima ohu kauguse ja alles oleva kaitsekilbi põhjal;
-4. võrdse tulemuse korral kasuta stabiilset tie-break'i, näiteks väiksem `playerNumber`;
-5. lisa tulemusse märge, et voor lõppes time limit'i tõttu.
+Ära kasuta random-võitjat. Random oleks lihtne, kuid tunduks mängijale
+ebaõiglane ja seda on automaattestides halvem põhjendada.
 
-Ära rakenda seda piirangut vaikimisi multiplayer režiimile, sest boonusfunktsioon ei tohi muuta olemasoleva mängu tavakäitumist.
+Timeouti pole selles versioonis vaja. Kui inimene tüdineb, saab ta vooru
+lõpetada enesetapuga või ESC menüü kaudu lahkudes.
 
 **Testid:**
 
-- sama olek annab alati sama timeout-võitja;
-- multiplayer vooru timeout ei mõjuta;
-- single-player voor ei saa jääda piiramatult `PLAYING` olekusse.
+- single-player voor lõpeb kohe, kui inimene on surnud;
+- parima survival-score'iga elus bot saab võidu;
+- survival-score'i viik lahendatakse väiksema `playerNumber` järgi;
+- multiplayer voor ei lõpe enne, kui alles on kõige rohkem üks elus mängija.
 
-**Valmis, kui:** üksikmängu voor lõpeb alati ning lahendus on review ajal selgitatav.
+**Valmis, kui:** inimene ei pea vaatama botide omavahelist lõppmängu ning vooru tulemus on deterministlikult selgitatav.
 
 ---
 
@@ -803,7 +807,7 @@ Vaata üle ka `ensureHost()`: see peab valima uue hosti ainult inimmängijate se
 3. Vooru tulemused näitavad NPC nime, kohta ja võitude arvu.
 4. Kui NPC võidab matši, peab pealkiri olema loomulik, näiteks `Vector wins the match`.
 5. Kui inimene võidab, säilib olemasolev `You win`.
-6. Single-player timeout'i korral näita lühidalt, et rakendus kasutas time limit'i.
+6. Kui inimene sureb single-player voorus, näita tulemusi kohe ning võitjaks valitud NPC peab olema selgelt nähtav.
 7. Ära näita NPC-le mõeldud pause/quit nuppe eraldi. UI kuvatakse ainult päris kliendile.
 
 Kontrolli `updateScoreboard()` cache'i. Praegune hash sisaldab ainult `id` ja `score`; NPC nime, hosti staatuse või konfiguratsiooni muutus ei pruugi olemasolevat rida uuendada. Täienda hash'i vajalike väljadega või uuenda mängijaelemendi kõiki muutuvaid osi.
@@ -859,7 +863,8 @@ Minimaalne kasulik testikomplekt:
 - järgmine voor säilitab config'i ja puhastab runtime'i;
 - hosti disconnect eemaldab botid;
 - tühi server naaseb multiplayer algolekusse;
-- timeout lõpetab ainult single-player vooru.
+- inimese surm lõpetab ainult single-player vooru kohe;
+- multiplayer voor lõpeb endiselt alles siis, kui kõige rohkem üks osaleja on elus.
 
 Kui Socket.IO integratsioonitestid vajavad eraldi serveri instantsi, eralda
 `server.js` käivitusest hiljem tehasefunktsioon:
@@ -889,8 +894,8 @@ Kasuta `docs/Review eelsed testid.txt` nõudeid kontrollnimekirjana.
 - [ ] NPC-d liiguvad, pööravad, jätavad radu ja saavad elimineeritud.
 - [ ] NPC-d koguvad ning kasutavad power-up'e.
 - [ ] NPC-d ründavad/väldivad nii inimest kui teisi NPC-sid.
-- [ ] Kui inimene sureb esimesena, jätkavad NPC-d omavahel.
-- [ ] Mäng ei jää lõputusse vooru.
+- [ ] Kui inimene sureb single-playeris, lõpeb voor kohe.
+- [ ] Single-player võitja valitakse deterministliku survival-score'i järgi.
 - [ ] Easy on nähtavalt nõrgem kui Medium.
 - [ ] Medium on nähtavalt nõrgem kui Hard.
 - [ ] Oskad raskuste erinevused koodist ja arvudega lahti seletada.
@@ -948,7 +953,7 @@ Praegune `README.md` kirjeldab peamiselt mängu spetsifikatsiooni. Lisa vähemal
 7. režiimide erinevus;
 8. NPC personality'd;
 9. Easy/Medium/Hard tehniline selgitus;
-10. üksikmängu time limit;
+10. single-player vooru lõpp inimese surma korral;
 11. teadaolevad piirangud;
 12. boonusfunktsioonid, kui neid lisad.
 
@@ -973,7 +978,7 @@ Hoia commit'id väikesed ja ühe eesmärgiga:
 9. `feat: add difficulty and personality decisions`
 10. `feat: run bots in the authoritative game loop`
 11. `fix: handle bots across rounds and disconnects`
-12. `feat: add single player round timeout`
+12. `feat: end single player round on human death`
 13. `test: cover npc and game mode behavior`
 14. `docs: document single player mode`
 
@@ -1028,7 +1033,7 @@ Disabled nupp pole turvakontroll. Kõik õigused ja režiimireeglid peavad olema
 
 ### Ära muuda multiplayer vaikekäitumist
 
-Single-player timeout, botid ja nende seadistus peavad aktiveeruma ainult single-player režiimis.
+Single-player inimese-surma-lõpp, botid ja nende seadistus peavad aktiveeruma ainult single-player režiimis.
 
 ---
 
@@ -1045,7 +1050,7 @@ Valmistu lahendust selgitama järgmises järjekorras:
 7. **Juhuslikud vead muudavad käitumise inimlikumaks, kuid seeded testid hoiavad automaattestid korratavad.**
 8. **Kõiki elus vastaseid hinnatakse võrdselt, mistõttu NPC-d võistlevad ka omavahel.**
 9. **Ühenduste blokeerimine toimub serveris, mitte ainult UI-s.**
-10. **Single-player time limit väldib lõputut vooru ega muuda multiplayer režiimi.**
+10. **Single-player voor lõpeb inimese surmaga ja survival-score valib NPC-võitja ilma multiplayer režiimi muutmata.**
 
 Kui oskad need kümme punkti oma koodi näidates lahti seletada, katad suure osa review arutelust.
 
