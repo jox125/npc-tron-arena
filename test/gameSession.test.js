@@ -41,7 +41,7 @@ test('single-player round ends when the human dies', () => {
             y2: 104
         })
     ];
-    const session = createGameSession(createFakeIo());
+    const session = createTestSession();
 
     eliminatePlayer('host');
     const ended = session.resolveRoundEnd();
@@ -74,7 +74,7 @@ test('single-player bot winner tie uses lower player number', () => {
         dx: 4,
         dy: 0
     });
-    const session = createGameSession(createFakeIo());
+    const session = createTestSession();
 
     eliminatePlayer('host');
     const ended = session.resolveRoundEnd();
@@ -96,7 +96,7 @@ test('multiplayer still waits while multiple players are alive', () => {
     gameState.players.third = createHumanPlayer('third', {
         playerNumber: 3
     });
-    const session = createGameSession(createFakeIo());
+    const session = createTestSession();
 
     eliminatePlayer('host');
     const ended = session.resolveRoundEnd();
@@ -249,7 +249,7 @@ test('round countdown clears bot runtime and temporary effects', () => {
         dy: 0
     }));
     const io = createFakeIo();
-    const session = createGameSession(io);
+    const session = createTestSession(io);
 
     session.startRoundCountdown();
 
@@ -454,6 +454,12 @@ function createFakeIo() {
                 .map(emission => emission.payload);
         }
     };
+}
+
+function createTestSession(io = createFakeIo()) {
+    return createGameSession(io, {
+        matchSummaryAutoReturnMs: 0
+    });
 }
 
 function resetState() {

@@ -215,6 +215,7 @@ export function createGameSession(
 
     function scheduleMatchSummaryAutoReturn() {
         clearMatchSummaryAutoReturn();
+        if (matchSummaryAutoReturnMs <= 0) return;
 
         gameState.resultAutoReturnAt =
             Date.now() + matchSummaryAutoReturnMs;
