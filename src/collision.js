@@ -19,13 +19,17 @@ export function checkTrailCollision(player, trails) {
         // 1. Skip checking against the segment actively growing out of the player's back
         if (segment.id === player.currentTrailId) continue;
 
-        // 2. Turning Buffer: Prevent instant self-suicide on a turn
+        // 2. Turning Buffer: Prevent instant self-suicide when leaving a segment
         if (segment.owner === player.id) {
-            const distToStart = Math.hypot(player.x - segment.x1, player.y - segment.y1);
-            const distToEnd = Math.hypot(player.x - segment.x2, player.y - segment.y2);
+            const distanceFromSegmentEnd = Math.hypot(
+                player.x - segment.x2,
+                player.y - segment.y2
+            );
+            const movingAwayFromSegmentEnd =
+                (player.x - segment.x2) * player.dx +
+                (player.y - segment.y2) * player.dy > 0;
 
-            // Skip checking if they turned within the last 16 pixels
-            if (distToStart < 16 || distToEnd < 16) {
+            if (distanceFromSegmentEnd <= 4 && movingAwayFromSegmentEnd) {
                 continue;
             }
         }
