@@ -1,7 +1,6 @@
 import {
     gameState,
-    prepareNextRound,
-    resetGameToLobby
+    prepareNextRound
 } from '../gameEngine.js';
 import {getPlayerIdentity} from './playerRegistry.js';
 import {canStartMatch} from "./matchRules.js";
@@ -131,9 +130,7 @@ socket.on('RETURN_TO_LOBBY', () => {
         return;
     }
 
-    resetGameToLobby();
-    io.emit('ROOM_STATE_UPDATE', Object.values(gameState.players));
-    io.emit('GAME_STATE_UPDATE', gameState);
+    session.returnToLobby();
 });
 }
 

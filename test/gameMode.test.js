@@ -405,6 +405,7 @@ function resetState() {
         winsRequired: 3,
         matchWinnerId: null,
         roundResult: null,
+        resultAutoReturnAt: null,
         eliminationOrder: [],
         eliminatedPlayers: {},
         players: {},

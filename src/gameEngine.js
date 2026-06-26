@@ -20,6 +20,7 @@ export let gameState = {
     winsRequired: 3,
     matchWinnerId: null,
     roundResult: null,
+    resultAutoReturnAt: null,
     eliminationOrder: [],
     eliminatedPlayers: {},
     players: {},         // Keyed by socket.io
@@ -221,6 +222,7 @@ export function prepareNextRound() {
     gameState.pausedBy = null;
     gameState.systemNotice = null;
     gameState.roundResult = null;
+    gameState.resultAutoReturnAt = null;
     gameState.eliminationOrder = [];
     gameState.eliminatedPlayers = {};
     gameState.trails = [];
@@ -242,6 +244,7 @@ export function resetGameToLobby() {
     if (Object.keys(gameState.players).length === 0) {
         gameState.gameMode = GAME_MODES.MULTIPLAYER;
         gameState.botConfigs = [];
+        gameState.winsRequired = 3;
     }
 
     gameState.gameStatus = "LOBBY";
@@ -253,6 +256,7 @@ export function resetGameToLobby() {
     gameState.pausedBy = null;
     gameState.systemNotice = null;
     gameState.roundResult = null;
+    gameState.resultAutoReturnAt = null;
     gameState.roundNumber = 1;
     gameState.matchWinnerId = null;
     gameState.eliminationOrder = [];
@@ -269,6 +273,11 @@ export function resetGameToLobby() {
         player.score = 0;
         resetRoundOnlyPlayerState(player);
     });
+}
+
+export function resetRoomToLobby() {
+    gameState.players = {};
+    resetGameToLobby();
 }
 
 export function resetRoundOnlyPlayerState(player) {

@@ -155,7 +155,19 @@ export function registerSocketEvents(socket) {
 
 function handleGameStateUpdate(gameState) {
     const players = Object.values(gameState.players);
-    const currentPlayer = findCurrentPlayer(players);
+    let currentPlayer = findCurrentPlayer(players);
+    if (
+        gameState.gameStatus === 'LOBBY'
+        && clientSession.currentPlayerId
+        && !currentPlayer
+    ) {
+        clientSession.currentPlayerId = null;
+        playerNameInput.disabled = false;
+        joinButton.disabled = false;
+        joinButton.textContent = 'Enter lobby';
+        showJoinMessage('');
+        currentPlayer = null;
+    }
     const isHost = currentPlayer?.isHost === true;
 
     clientSession.currentGameStatus = gameState.gameStatus;

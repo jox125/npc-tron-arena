@@ -5,6 +5,7 @@ import {
     finishRound,
     gameState,
     resetGameToLobby,
+    resetRoomToLobby,
     resetRoundOnlyPlayerState,
     startNewTrailSegment
 } from '../gameEngine.js';
@@ -18,6 +19,7 @@ import { GAME_MODES } from './gameModes.js';
 
 const COUNTDOWN_STEP_MS = 750;
 const POWER_UP_SPAWN_INTERVAL_MS = 6000;
+export const MATCH_SUMMARY_AUTO_RETURN_MS = 30000;
 
 /**
  * Owns timers and round transitions for one running game server.
@@ -25,9 +27,13 @@ const POWER_UP_SPAWN_INTERVAL_MS = 6000;
  * Keeping timer handles here prevents Socket.IO handlers from needing to know
  * how countdowns, elapsed time and power-up spawning are implemented.
  */
-export function createGameSession(io) {
+export function createGameSession(
+    io,
+    { matchSummaryAutoReturnMs = MATCH_SUMMARY_AUTO_RETURN_MS } = {}
+) {
     let countdownInterval = null;
     let powerUpInterval = null;
+    let matchSummaryAutoReturnTimeout = null;
     let systemNoticeId = 0;
 
     function resolveRoundEnd() {
@@ -46,7 +52,7 @@ export function createGameSession(io) {
         const alivePlayers = players.filter(player => player.isAlive);
         if (shouldEndSinglePlayerAfterHumanDeath(players)) {
             updateRoundElapsedTime();
-            return finishRound(
+            return finishRoundAndScheduleLobbyReturn(
                 selectSinglePlayerBotWinnerId(players),
                 gameState.eliminationOrder
             );
@@ -55,14 +61,22 @@ export function createGameSession(io) {
         if (alivePlayers.length > 1) return false;
 
         updateRoundElapsedTime();
-        return finishRound(
+        return finishRoundAndScheduleLobbyReturn(
             alivePlayers[0]?.id ?? null,
             gameState.eliminationOrder
         );
     }
 
+    function finishRoundAndScheduleLobbyReturn(winnerId, eliminationOrder) {
+        const finished = finishRound(winnerId, eliminationOrder);
+        if (finished) scheduleMatchSummaryAutoReturn();
+
+        return finished;
+    }
+
     function startRoundCountdown() {
         clearCountdown();
+        clearMatchSummaryAutoReturn();
 
         gameState.gameStatus = 'COUNTDOWN';
         gameState.timer = 3;
@@ -72,6 +86,7 @@ export function createGameSession(io) {
         gameState.roundElapsedMs = 0;
         gameState.pausedBy = null;
         gameState.roundResult = null;
+        gameState.resultAutoReturnAt = null;
         gameState.eliminationOrder = [];
         gameState.eliminatedPlayers = {};
         gameState.trails = [];
@@ -175,7 +190,15 @@ export function createGameSession(io) {
     function resetEmptySession() {
         clearCountdown();
         clearPowerUpSpawner();
+        clearMatchSummaryAutoReturn();
         resetGameToLobby();
+    }
+
+    function returnToLobby() {
+        clearMatchSummaryAutoReturn();
+        resetRoomToLobby();
+        io.emit('ROOM_STATE_UPDATE', Object.values(gameState.players));
+        io.emit('GAME_STATE_UPDATE', gameState);
     }
 
     function clearCountdown() {
@@ -190,12 +213,33 @@ export function createGameSession(io) {
         powerUpInterval = null;
     }
 
+    function scheduleMatchSummaryAutoReturn() {
+        clearMatchSummaryAutoReturn();
+
+        gameState.resultAutoReturnAt =
+            Date.now() + matchSummaryAutoReturnMs;
+        matchSummaryAutoReturnTimeout = setTimeout(() => {
+            if (gameState.gameStatus !== 'GAME_OVER') return;
+
+            returnToLobby();
+        }, matchSummaryAutoReturnMs);
+    }
+
+    function clearMatchSummaryAutoReturn() {
+        if (matchSummaryAutoReturnTimeout) {
+            clearTimeout(matchSummaryAutoReturnTimeout);
+            matchSummaryAutoReturnTimeout = null;
+        }
+        gameState.resultAutoReturnAt = null;
+    }
+
     return {
         pauseRoundTimer,
         removePlayerFromMatch,
         resetEmptySession,
         resolveRoundEnd,
         resumeRoundTimer,
+        returnToLobby,
         setSystemNotice,
         startRoundCountdown,
         updateRoundElapsedTime

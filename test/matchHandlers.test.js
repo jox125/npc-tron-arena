@@ -122,6 +122,7 @@ function createFakeSession() {
         pauseRoundTimerCalls: 0,
         removePlayerFromMatchCalls: [],
         resumeRoundTimerCalls: 0,
+        returnToLobbyCalls: 0,
         setSystemNoticeCalls: [],
         startRoundCountdownCalls: 0,
         pauseRoundTimer() {
@@ -132,6 +133,9 @@ function createFakeSession() {
         },
         resumeRoundTimer() {
             this.resumeRoundTimerCalls++;
+        },
+        returnToLobby() {
+            this.returnToLobbyCalls++;
         },
         setSystemNotice(...args) {
             this.setSystemNoticeCalls.push(args);
@@ -191,6 +195,7 @@ function resetState() {
         winsRequired: 3,
         matchWinnerId: null,
         roundResult: null,
+        resultAutoReturnAt: null,
         eliminationOrder: [],
         eliminatedPlayers: {},
         players: {},

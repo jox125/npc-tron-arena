@@ -12,6 +12,7 @@ const returnToLobbyButton =
     document.querySelector('#return-to-lobby-button');
 const returnToLobbyMessage =
     document.querySelector('#return-to-lobby-message');
+let autoReturnMessageTimer = null;
 
 /**
  * Renders both round results and final match results from one server payload.
@@ -74,7 +75,8 @@ export function renderRoundResult(gameState, players, currentPlayerId) {
     updateResultActions({
         currentPlayer,
         isMatchOver,
-        playerCount: players.length
+        playerCount: players.length,
+        resultAutoReturnAt: gameState.resultAutoReturnAt
     });
 }
 
@@ -168,9 +170,15 @@ function renderRankings(rankings) {
     });
 }
 
-function updateResultActions({ currentPlayer, isMatchOver, playerCount }) {
+function updateResultActions({
+    currentPlayer,
+    isMatchOver,
+    playerCount,
+    resultAutoReturnAt
+}) {
     const isHost = currentPlayer?.isHost === true;
     const canStartNextRound = !isMatchOver && playerCount >= 2;
+    const autoReturnAt = Number(resultAutoReturnAt ?? 0);
 
     nextRoundButton.classList.toggle(
         'hidden',
@@ -183,19 +191,67 @@ function updateResultActions({ currentPlayer, isMatchOver, playerCount }) {
     nextRoundButton.disabled = false;
     returnToLobbyButton.disabled = false;
     returnToLobbyMessage.classList.remove('error');
+    clearAutoReturnMessageTimer();
 
+    const updateMessage = () => {
+        returnToLobbyMessage.textContent = getResultActionMessage({
+            autoReturnAt,
+            canStartNextRound,
+            isHost,
+            isMatchOver
+        });
+    };
+    updateMessage();
+
+    if (autoReturnAt > Date.now()) {
+        autoReturnMessageTimer = setInterval(updateMessage, 1000);
+    }
+}
+
+function getResultActionMessage({
+    autoReturnAt,
+    canStartNextRound,
+    isHost,
+    isMatchOver
+}) {
+    const autoReturnNotice = getAutoReturnNotice(autoReturnAt);
+    let message;
     if (isHost) {
-        returnToLobbyMessage.textContent = canStartNextRound
+        message = canStartNextRound
             ? 'Start the next round when everyone is ready.'
             : isMatchOver
                 ? 'Return everyone to the lobby when the results are reviewed.'
                 : 'Not enough players remain. Return to the lobby to continue.';
-        return;
+        return `${message}${autoReturnNotice}`;
     }
 
-    returnToLobbyMessage.textContent = canStartNextRound
+    message = canStartNextRound
         ? 'Waiting for the room host to start the next round.'
         : isMatchOver
             ? 'Waiting for the room host to return everyone to the lobby.'
             : 'Not enough players remain. Waiting for the room host.';
+    return `${message}${autoReturnNotice}`;
+}
+
+function getAutoReturnNotice(autoReturnAt) {
+    if (!autoReturnAt) return '';
+
+    const secondsRemaining = Math.max(
+        0,
+        Math.ceil((autoReturnAt - Date.now()) / 1000)
+    );
+
+    if (secondsRemaining === 0) {
+        clearAutoReturnMessageTimer();
+        return ' Returning to lobby now.';
+    }
+
+    return ` Auto-return in ${secondsRemaining}s.`;
+}
+
+function clearAutoReturnMessageTimer() {
+    if (!autoReturnMessageTimer) return;
+
+    clearInterval(autoReturnMessageTimer);
+    autoReturnMessageTimer = null;
 }
