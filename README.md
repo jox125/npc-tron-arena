@@ -9,6 +9,14 @@ The project uses Express, Socket.IO, DOM/CSS rendering, and Node's built-in test
 runner. The server is the source of truth for movement, collisions, power-ups,
 round results, and bot decisions.
 
+## Live Demo
+
+The game is publicly playable on Render:
+
+```text
+https://npc-tron-arena.onrender.com/
+```
+
 ## Authors
 
 - Original web-game multiplayer: Rain Liivamägi, Rain Vahesalu, and Joel Lepp.
@@ -211,8 +219,8 @@ See [`docs/Architecture.md`](docs/Architecture.md) for a more detailed code map.
 
 ## Known Limitations
 
-- There is no built-in public matchmaking server. Internet multiplayer requires
-  exposing the local server or deploying it yourself.
+- There is no built-in public matchmaking lobby discovery. Players need to open
+  the same local or hosted game URL to join the same server.
 - Single-player is implemented as a local/server-authoritative mode, not as a
   separate fully client-only offline build.
 - Bot behavior is heuristic rather than pathfinding over the full arena graph.
